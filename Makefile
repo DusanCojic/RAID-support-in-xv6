@@ -149,6 +149,7 @@ UPROGS=\
 	$U/_zombie\
 	$U/_maxout_vm\
 	$U/_javni_test\
+	$U/_test\
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)
