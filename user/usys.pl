@@ -36,3 +36,11 @@ entry("getpid");
 entry("sbrk");
 entry("sleep");
 entry("uptime");
+
+entry("init_raid");
+entry("read_raid");
+entry("write_raid");
+entry("disk_fail_raid");
+entry("disk_repaired_raid");
+entry("info_raid");
+entry("destroy_raid");
