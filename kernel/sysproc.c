@@ -99,31 +99,42 @@ sys_init_raid(void) {
 
 uint64
 sys_read_raid(void) {
+  printf("READ RAID\n");
 
   return 0;
 }
 
 uint64
 sys_write_raid(void) {
+  printf("WRITE_RAID\n");
+
   return 0;
 }
 
 uint64
 sys_disk_fail_raid(void) {
+  printf("DISK FAIL RAID\n");
+
   return 0;
 }
 
 uint64
 sys_disk_repaired_raid(void) {
+  printf("DISK REPAIR RAID\n");
+
   return 0;
 }
 
 uint64
 sys_info_raid(void) {
+  printf("INFO RAID\n");
+
   return 0;
 }
 
 uint64
 sys_destroy_raid(void) {
+  printf("DESTROY RAID\n");
+
   return 0;
 }
