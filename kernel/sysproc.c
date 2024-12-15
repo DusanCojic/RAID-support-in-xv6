@@ -1,4 +1,4 @@
-#include "types.h"
+#include "raid.h"
 #include "riscv.h"
 #include "defs.h"
 #include "param.h"
@@ -92,7 +92,7 @@ sys_uptime(void)
 
 uint64
 sys_init_raid(void) {
-  printf("INIT RAID\n");
+  init_raid(RAID0);
 
   return 0;
 }
