@@ -181,7 +181,9 @@ int disk_repaired_raid1(int diskn) {
 }
 
 int info_raid1(uint *blkn, uint *blks, uint *diskn) {
-  
+  (*blkn) = NUMBER_OF_BLOCKS;
+  (*blks) = DISK_SIZE_IN_BYTES;
+  (*diskn) = VIRTIO_RAID_DISK_END;
 
   return 0;
 }
@@ -229,7 +231,7 @@ int disk_repaired_raid(int diskn) {
 }
 
 int info_raid(uint *blkn, uint *blks, uint *diskn) {
-  printf("INFO RAID\n");
+  info_raid1(blkn, blks, diskn);
 
   return 0;
 }

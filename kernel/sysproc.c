@@ -156,7 +156,16 @@ sys_info_raid(void) {
   argaddr(1, &blks);
   argaddr(2, &diskn);
 
-  return info_raid((uint*)blkn, (uint*)blks, (uint*)diskn);
+  uint blkn_buff, blks_buff, diskn_buff;
+  if (info_raid(&blkn_buff, &blks_buff, &diskn_buff) < 0)
+    return -1;
+
+  if (copyout(myproc()->pagetable, blkn, (char*)&blkn_buff, sizeof(uint)) < 0
+    || copyout(myproc()->pagetable, blks, (char*)&blks_buff, sizeof(uint)) < 0
+    || copyout(myproc()->pagetable, diskn, (char*)&diskn_buff, sizeof(uint)) < 0)
+      return -1;
+
+  return 0;
 }
 
 uint64
