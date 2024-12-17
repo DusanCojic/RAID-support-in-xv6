@@ -5,6 +5,7 @@
 #include "memlayout.h"
 #include "spinlock.h"
 #include "proc.h"
+#include "fs.h"
 
 uint64
 sys_exit(void)
@@ -92,49 +93,73 @@ sys_uptime(void)
 
 uint64
 sys_init_raid(void) {
-  init_raid(RAID0);
-
-  return 0;
+  int raid_type;
+  argint(0, &raid_type);
+  
+  return init_raid((enum RAID_TYPE)raid_type);
 }
 
 uint64
 sys_read_raid(void) {
-  printf("READ RAID\n");
+  int blkn;
+  uint64 data;
+  argint(0, &blkn);
+  argaddr(1, &data);
+
+  uchar buffer[BSIZE];
+  if (read_raid(blkn, (uchar*)buffer) < 0)
+    return -1;
+
+  if (copyout(myproc()->pagetable, data, (char*)buffer, BSIZE) < 0)
+    return -1;
 
   return 0;
 }
 
 uint64
 sys_write_raid(void) {
-  printf("WRITE_RAID\n");
+  int blkn;
+  uint64 data;
+  argint(0, &blkn);
+  argaddr(1, &data);
 
-  return 0;
+  uchar buffer[BSIZE];
+  if (copyin(myproc()->pagetable, (char*)buffer, data, BSIZE) < 0)
+    return -1;
+
+  return write_raid(blkn, buffer);
 }
 
 uint64
 sys_disk_fail_raid(void) {
-  printf("DISK FAIL RAID\n");
+  int diskn;
+  argint(0, &diskn);
 
-  return 0;
+  return disk_fail_raid(diskn);
 }
 
 uint64
 sys_disk_repaired_raid(void) {
-  printf("DISK REPAIR RAID\n");
+  int diskn;
+  argint(0, &diskn);
 
-  return 0;
+  return disk_repaired_raid(diskn);
 }
 
 uint64
 sys_info_raid(void) {
-  printf("INFO RAID\n");
+  uint64 blkn;
+  uint64 blks;
+  uint64 diskn;
+  
+  argaddr(0, &blkn);
+  argaddr(1, &blks);
+  argaddr(2, &diskn);
 
-  return 0;
+  return info_raid((uint*)blkn, (uint*)blks, (uint*)diskn);
 }
 
 uint64
 sys_destroy_raid(void) {
-  printf("DESTROY RAID\n");
-
-  return 0;
+  return destroy_raid();
 }

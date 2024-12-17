@@ -59,6 +59,10 @@ ifndef DISK_SIZE
 DISK_SIZE := 128M
 endif
 
+ifndef DISK_SIZE_BYTES
+DISK_SIZE_BYTES := $(shell echo $$(echo $(DISK_SIZE) | awk '/M/ {print $$1 * 1024 * 1024}'))
+endif
+
 RAID_DISKS = $(shell count=`expr $(DISKS) - 1`; for i in `seq 0 $$count`; do echo -n "disk_$$i.img "; done)
 
 $(RAID_DISKS):
@@ -73,6 +77,7 @@ OBJCOPY = $(TOOLPREFIX)objcopy
 OBJDUMP = $(TOOLPREFIX)objdump
 
 CFLAGS = -Wall -Werror -O0 -fno-omit-frame-pointer -ggdb -gdwarf-2 -DDISKS=$(DISKS) -DMEM=$(MEM)
+CFLAGS += -DDISK_SIZE=$(DISK_SIZE_BYTES)
 CFLAGS += -MD
 CFLAGS += -mcmodel=medany
 CFLAGS += -ffreestanding -fno-common -nostdlib -mno-relax
