@@ -5,22 +5,14 @@
 int main() {
   init_raid(RAID1);
 
-  uint a, b, c;
-  info_raid(&a, &b, &c);
+  uint disk_num, block_num, block_size;
+  info_raid(&block_num, &block_size, &disk_num);
 
-  printf("%d %d %d\n", a, b, c);
+  printf("%d\n", block_size);
 
-  // uchar data1[BSIZE] = {5, 3, 10};
-  // write_raid(0, data1);
+  uchar* blk = malloc(block_size);
 
-  // disk_fail_raid(1);
-
-  // disk_repaired_raid(1);
-
-  // uchar data2[BSIZE];
-  // read_raid(0, data2);
-
-  // printf("%d %d %d\n", data2[0], data2[1], data2[2]);
+  free(blk);
 
   return 0;
 }

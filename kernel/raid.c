@@ -14,8 +14,8 @@ struct raid_data {
 };
 
 // raid data for every disk stored to avoid deserialization at every access
-struct raid_data raid_data_cache[VIRTIO_RAID_DISK_END];
-uchar raid_data_cache_loaded = 0;
+struct raid_data raid1_data_cache[VIRTIO_RAID_DISK_END];
+uchar raid1_data_cache_loaded = 0;
 
 // RAID1
 
@@ -40,17 +40,17 @@ int init_raid1() {
   // writing raid data to all disks and cache
   for (int i = VIRTIO_RAID_DISK_START; i <= VIRTIO_RAID_DISK_END; i++) {
     write_block(i, 0, buffer);
-    raid_data_cache[i-1] = metadata;
+    raid1_data_cache[i-1] = metadata;
   }
 
-  raid_data_cache_loaded = 1;
+  raid1_data_cache_loaded = 1;
 
   return 0;
 }
 
 // loading raid data cache if not loaded
-void load_raid_data_cache() {
-  if (raid_data_cache_loaded) return;
+void load_raid1_data_cache() {
+  if (raid1_data_cache_loaded) return;
 
   uchar buffer[BSIZE];
   for (int i = VIRTIO_RAID_DISK_START; i <= VIRTIO_RAID_DISK_END; i++) {
@@ -64,17 +64,17 @@ void load_raid_data_cache() {
       metadata_ptr[i] = buffer[i];
 
     // load cache
-    raid_data_cache[i-1] = metadata;
+    raid1_data_cache[i-1] = metadata;
   }
 }
 
 int read_raid1(int blkn, uchar* data) {
-  load_raid_data_cache();
+  load_raid1_data_cache();
 
   // find working disk
   int disk_number = -1;
   for (int i = VIRTIO_RAID_DISK_START; i <= VIRTIO_RAID_DISK_END; i++)
-    if (raid_data_cache[i-1].working == 1) {
+    if (raid1_data_cache[i-1].working == 1) {
       disk_number = i;
       break;
     }
@@ -93,7 +93,7 @@ int read_raid1(int blkn, uchar* data) {
 }
 
 int write_raid1(int blkn, uchar* data) {
-  load_raid_data_cache();
+  load_raid1_data_cache();
 
   int block = blkn + 1;
   // invalid block
@@ -103,7 +103,7 @@ int write_raid1(int blkn, uchar* data) {
   // iteratre over all disks
   for (int disk_num = VIRTIO_RAID_DISK_START; disk_num <= VIRTIO_RAID_DISK_END; disk_num++) {
     // check if disk is working
-    if (raid_data_cache[disk_num-1].working == 1) {
+    if (raid1_data_cache[disk_num-1].working == 1) {
       write_block(disk_num, block, data);
       ret = 0;
     }
@@ -116,13 +116,13 @@ int disk_fail_raid1(int diskn) {
   if (diskn < 1 || diskn > VIRTIO_RAID_DISK_END) return -1;
 
   // load cache if not loaded
-  load_raid_data_cache();
+  load_raid1_data_cache();
 
   // cannot set disk to be invalid if already invalid
-  if (raid_data_cache[diskn-1].working == 0) return -1;
+  if (raid1_data_cache[diskn-1].working == 0) return -1;
 
   // reset working flag for the disk
-  raid_data_cache[diskn-1].working = 0;
+  raid1_data_cache[diskn-1].working = 0;
 
   // deserialize disk metadata
   // read metadata for the disk
@@ -151,15 +151,15 @@ int disk_repaired_raid1(int diskn) {
   if (diskn < 1 || diskn > VIRTIO_RAID_DISK_END) return -1;
 
   // load cache if not loaded
-  load_raid_data_cache();
+  load_raid1_data_cache();
 
   // cannot repair disk if already working
-  if (raid_data_cache[diskn-1].working == 1) return -1;
+  if (raid1_data_cache[diskn-1].working == 1) return -1;
 
   // find disk to copy data from
   int disk_to_copy = -1;
   for (int i = VIRTIO_RAID_DISK_START; i <= VIRTIO_RAID_DISK_END; i++)
-    if (raid_data_cache[i-1].working == 1) {
+    if (raid1_data_cache[i-1].working == 1) {
       disk_to_copy = i;
       break;
     }
@@ -175,14 +175,14 @@ int disk_repaired_raid1(int diskn) {
   }
 
   // update cache
-  raid_data_cache[diskn-1].working = 1;
+  raid1_data_cache[diskn-1].working = 1;
 
   return 0;
 }
 
 int info_raid1(uint *blkn, uint *blks, uint *diskn) {
-  (*blkn) = NUMBER_OF_BLOCKS;
-  (*blks) = DISK_SIZE_IN_BYTES;
+  (*blkn) = NUMBER_OF_BLOCKS - 1;
+  (*blks) = BSIZE;
   (*diskn) = VIRTIO_RAID_DISK_END;
 
   return 0;
@@ -237,7 +237,7 @@ int info_raid(uint *blkn, uint *blks, uint *diskn) {
 }
 
 int destroy_raid() {
-  printf("DESTROY RAID\n");
+  destroy_raid1();
 
   return 0;
 }
