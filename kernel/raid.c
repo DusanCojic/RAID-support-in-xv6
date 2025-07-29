@@ -193,7 +193,18 @@ int info_raid1(uint *blkn, uint *blks, uint *diskn) {
 }
 
 int destroy_raid1() {
-  
+  load_raid1_data_cache();
+
+  // write all zeroes in first block of every disk
+  for (int i = VIRTIO_RAID_DISK_START; i <= VIRTIO_RAID_DISK_END; i++) {
+    if (!raid1_data_cache[i - 1].working) continue;
+
+    uchar* buffer[BSIZE];
+    for (int j = 0; j < BSIZE; j++)
+      buffer[j] = 0;
+
+      write_block(i, 0, buffer);
+  }
 
   return 0;
 }
