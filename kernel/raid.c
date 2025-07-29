@@ -60,8 +60,8 @@ void load_raid1_data_cache() {
     // deserialize data
     struct raid_data metadata;
     uchar* metadata_ptr = (uchar*)(&metadata);
-    for (int i = 0; i < sizeof(metadata); i++)
-      metadata_ptr[i] = buffer[i];
+    for (int j = 0; j < sizeof(metadata); j++)
+      metadata_ptr[i] = buffer[j];
 
     // load cache
     raid1_data_cache[i-1] = metadata;
@@ -135,7 +135,7 @@ int disk_fail_raid1(int diskn) {
   for (int i = 0; i < sizeof(struct raid_data); i++)
     metadata_ptr[i] = buffer[i];
 
-  // reset worting flag
+  // reset working flag
   metadata.working = 0;
 
   // serialize and write back to the disk
@@ -167,7 +167,7 @@ int disk_repaired_raid1(int diskn) {
   if (disk_to_copy == -1) return -1;
 
   // copy every block from working disk to repaired disk
-  for (int block_number = 0; block_number < NUMBER_OF_BLOCKS; block_number++) {
+  for (int block_number = 1; block_number < NUMBER_OF_BLOCKS; block_number++) {
     uchar buffer[BSIZE];
     read_block(disk_to_copy, block_number, buffer);
 
@@ -175,7 +175,11 @@ int disk_repaired_raid1(int diskn) {
   }
 
   // update cache
-  raid1_data_cache[diskn-1].working = 1;
+  raid1_data_cache[diskn - 1].working = 1;
+
+  // write updated cache to the corresponding disk
+  uchar* metadata_ptr = (uchar*)(&raid1_data_cache[diskn - 1]);
+  write_block(diskn, 0, metadata_ptr);
 
   return 0;
 }
