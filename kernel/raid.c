@@ -73,11 +73,14 @@ int read_raid0(int blkn, uchar* data) {
   // Check if raid is working
   if (raid0_data_cache.working == 0)
     return -1;
+    
+  int num_of_disks = VIRTIO_RAID_DISK_END - 1;
 
   // calculate disk number where desired block is stored
-  int diskn = blkn % (VIRTIO_RAID_DISK_END - 1) + 1;
+  int diskn = blkn % num_of_disks+ 1;
   // calculate block number on the disk
-  int blockn = blkn / (VIRTIO_RAID_DISK_END - 1) + 1;
+  int blockn = blkn / num_of_disks;
+  if (diskn == 1) blockn++;
 
   // write block from the calculated disk in the calculated block
   read_block(diskn, blockn, data);
@@ -96,10 +99,13 @@ int write_raid0(int blkn, uchar* data) {
   if (raid0_data_cache.working == 0)
     return -1;
 
+  int num_of_disks = VIRTIO_RAID_DISK_END - 1;
+
   // calculate disk number where desired block is stored
-  int diskn = blkn % (VIRTIO_RAID_DISK_END - 1) + 1;
+  int diskn = blkn % num_of_disks + 1;
   // calculate block number on the disk
-  int blockn = blkn / (VIRTIO_RAID_DISK_END - 1) + 1;
+  int blockn = blkn / num_of_disks + 1;
+  if (diskn == 1) blockn++:
 
   // write block on the calculated disk in the calculated block
   write_block(diskn, blockn, data);
