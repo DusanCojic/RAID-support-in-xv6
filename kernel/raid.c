@@ -108,17 +108,38 @@ int write_raid0(int blkn, uchar* data) {
 }
 
 int disk_fail_raid0(int diskn) {
-  // To be implemented
-  return 0;
+  // check if disk number is out of bounds
+  if (diskn < 1 || diskn > VIRTIO_RAID_DISK_END)
+    return -1;
+
+  // set global working flag to 0
+  raid0_data_cache.working = 0;
+
+  // write modified cache in the first block of the first disk
+  uchar* metadata_ptr = (uchar*)(&raid0_data_cache);
+  int metadata_size = sizeof(struct raid_data);
+
+  uchar buffer[BSIZE];
+  for (int i = 0; i < BSIZE; i++)
+    buffer[i] = metadata_ptr[i];
+
+  write_block(1, 0, buffer);
 }
 
 int disk_repaired_raid0(int diskn) {
-  // To be implemented
-  return 0;
+  // repairing a disk in RAID0 does not do anything, since there is no redundancy
+  return -1;
 }
 
 int destroy_raid0() {
-  // To be implemented
+  // write all zeores in the first block of the first disk
+  char buffer[BSIZE];
+
+  for (int i = 0; i < BSIZE; i++)
+    buffer[i] = 0;
+
+  write_block(1, 0, buffer);
+
   return 0;
 }
 
