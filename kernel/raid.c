@@ -349,6 +349,49 @@ int destroy_raid1() {
 }
 
 
+
+
+
+// RAID 0+1
+
+int init_raid01(enum RAID_TYPE raid) {
+  // To be implemented
+  return 0;
+}
+
+void load_raid01_data_cache() {
+  // To be implemented
+}
+
+int read_raid01(int blkn, uchar* data) {
+  // To be implemented
+  return 0;
+}
+
+int write_raid01(int blkn, uchar* data) {
+  // To be implemented
+  return 0;
+}
+
+int disk_fail_raid01(int diskn) {
+  // To be implemented
+  return 0;
+}
+
+int disk_repaired_raid01(int diskn) {
+  // To be implemented
+  return 0;
+}
+
+int destroy_raid01() {
+  // To be implemented
+  return 0;
+}
+
+
+
+
+
 int init_raid(enum RAID_TYPE raid) {
   switch (raid) {
     case RAID0: return init_raid0();
