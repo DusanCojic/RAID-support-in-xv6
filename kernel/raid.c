@@ -69,7 +69,20 @@ int read_raid0(int blkn, uchar* data) {
 }
 
 int write_raid0(int blkn, uchar* data) {
-  // To be implemented
+  load_raid0_data_cache();
+
+  // Check if raid exists
+  if (raid0_data_cache.working == 0)
+    return -1;
+
+  // calculate disk number where desired block is stored
+  int diskn = blkn % (VIRTIO_RAID_DISK_END - 1) + 1;
+  // calculate block number on the disk
+  int blockn = blkn / (VIRTIO_RAID_DISK_END - 1);
+
+  // write block on the calculated disk in the calculated block
+  write_block(diskn, blockn, data);
+
   return 0;
 }
 
