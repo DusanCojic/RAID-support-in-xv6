@@ -48,11 +48,6 @@ int disk_repaired_raid0(int diskn) {
   return 0;
 }
 
-int info_raid0(uint *blkn, uint *blks, uint *diskn) {
-  // To be implemented
-  return 0;
-}
-
 int destroy_raid0() {
   // To be implemented
   return 0;
@@ -233,14 +228,6 @@ int disk_repaired_raid1(int diskn) {
   return 0;
 }
 
-int info_raid1(uint *blkn, uint *blks, uint *diskn) {
-  (*blkn) = NUMBER_OF_BLOCKS - 1;
-  (*blks) = BSIZE;
-  (*diskn) = VIRTIO_RAID_DISK_END;
-
-  return 0;
-}
-
 int destroy_raid1() {
   load_raid1_data_cache();
 
@@ -295,7 +282,9 @@ int disk_repaired_raid(int diskn) {
 }
 
 int info_raid(uint *blkn, uint *blks, uint *diskn) {
-  info_raid1(blkn, blks, diskn);
+  (*blkn) = NUMBER_OF_BLOCKS - 1;
+  (*blks) = BSIZE;
+  (*diskn) = VIRTIO_RAID_DISK_END;
 
   return 0;
 }
