@@ -13,11 +13,15 @@ struct raid_data {
   uchar working;
 };
 
+
+
+
+
+// RAID1
+
 // raid data for every disk stored to avoid deserialization at every access
 struct raid_data raid1_data_cache[VIRTIO_RAID_DISK_END];
 uchar raid1_data_cache_loaded = 0;
-
-// RAID1
 
 int init_raid1() {
   // not enough disks for raid1
