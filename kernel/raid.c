@@ -199,11 +199,11 @@ int destroy_raid1() {
   for (int i = VIRTIO_RAID_DISK_START; i <= VIRTIO_RAID_DISK_END; i++) {
     if (!raid1_data_cache[i - 1].working) continue;
 
-    uchar* buffer[BSIZE];
+    uchar buffer[BSIZE];
     for (int j = 0; j < BSIZE; j++)
       buffer[j] = 0;
 
-      write_block(i, 0, buffer);
+    write_block(i, 0, buffer);
   }
 
   return 0;
