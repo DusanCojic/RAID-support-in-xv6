@@ -17,6 +17,51 @@ struct raid_data {
 
 
 
+// RAID0
+
+int init_raid0() {
+  // To be implemented
+  return 0;
+}
+
+void load_raid0_data_cache() {
+  // To be implemented
+}
+
+int read_raid0(int blkn, uchar* data) {
+  // To be implemented
+  return 0;
+}
+
+int write_raid0(int blkn, uchar* data) {
+  // To be implemented
+  return 0;
+}
+
+int disk_fail_raid0(int diskn) {
+  // To be implemented
+  return 0;
+}
+
+int disk_repaired_raid0(int diskn) {
+  // To be implemented
+  return 0;
+}
+
+int info_raid0(uint *blkn, uint *blks, uint *diskn) {
+  // To be implemented
+  return 0;
+}
+
+int destroy_raid0() {
+  // To be implemented
+  return 0;
+}
+
+
+
+
+
 // RAID1
 
 // raid data for every disk stored to avoid deserialization at every access
