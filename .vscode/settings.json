@@ -2,6 +2,7 @@
     "files.associations": {
         "types.h": "c",
         "fs.h": "c",
-        "user.h": "c"
+        "user.h": "c",
+        "cstdlib": "c"
     }
 }

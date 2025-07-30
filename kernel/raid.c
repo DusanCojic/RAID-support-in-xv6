@@ -218,7 +218,7 @@ int read_raid1(int blkn, uchar* data) {
 
   // find working disk
   int disk_number = -1;
-  for (int i = VIRTIO_RAID_DISK_START; i <= VIRTIO_RAID_DISK_END; i++)
+  for (int i = VIRTIO_RAID_DISK_START; i < VIRTIO_RAID_DISK_END; i++)
     if (raid1_data_cache[i-1].working == 1) {
       disk_number = i;
       break;
@@ -248,7 +248,7 @@ int write_raid1(int blkn, uchar* data) {
 
   int ret = -1;
   // iteratre over all disks
-  for (int disk_num = VIRTIO_RAID_DISK_START; disk_num <= VIRTIO_RAID_DISK_END; disk_num++) {
+  for (int disk_num = VIRTIO_RAID_DISK_START; disk_num < VIRTIO_RAID_DISK_END; disk_num++) {
     // check if disk is working
     if (raid1_data_cache[disk_num-1].working == 1) {
       write_block(disk_num, blkn, data);
@@ -354,8 +354,35 @@ int destroy_raid1() {
 
 // RAID 0+1
 
-int init_raid01(enum RAID_TYPE raid) {
-  // To be implemented
+#define RAID01_NUM_OF_DISKS VIRTIO_RAID_DISK_END - 1
+struct raid_data* raid01_data_cache[RAID01_NUM_OF_DISKS];
+uchar raid01_data_cache_loaded = 0;
+
+int init_raid01() {
+  // must have even number of disks for RAID 0+1 to work
+  if (RAID01_NUM_OF_DISKS % 2 != 0)
+    return -1;
+
+  // initialize raid metadata
+  struct raid_data metadata;
+  metadata.raid_type = RAID0_1;
+  metadata.working = 1;
+  
+  // serialize raid metadata
+  uchar* buffer[BSIZE];
+  uchar* metadata_ptr = (uchar*)(&metadata);
+  int metadata_size = sizeof(struct raid_data);
+
+  for (int i = 0; i < metadata_size; i++)
+    buffer[i] = metadata_ptr[i];
+
+  // write raid metadata on every second disk
+  for (int i = VIRTIO_RAID_DISK_START; i < VIRTIO_RAID_DISK_END; i += 2)
+    write_block(i, 0, buffer);
+
+  // indicate that the cache is loaded
+  raid01_data_cache_loaded = 1;
+
   return 0;
 }
 
@@ -396,6 +423,7 @@ int init_raid(enum RAID_TYPE raid) {
   switch (raid) {
     case RAID0: return init_raid0();
     case RAID1: return init_raid1();
+    case RAID0_1: return init_raid01();
     
     default:
       return -1;
@@ -405,19 +433,19 @@ int init_raid(enum RAID_TYPE raid) {
 }
 
 int read_raid(int blkn, uchar* data) {
-  return read_raid0(blkn, data);
+  return read_raid01(blkn, data);
 }
 
 int write_raid(int blkn, uchar* data) {
-  return write_raid0(blkn, data);
+  return write_raid01(blkn, data);
 }
 
 int disk_fail_raid(int diskn) {
-  return disk_fail_raid0(diskn);
+  return disk_fail_raid01(diskn);
 }
 
 int disk_repaired_raid(int diskn) {
-  return disk_repaired_raid0(diskn);
+  return disk_repaired_raid01(diskn);
 }
 
 int info_raid(uint *blkn, uint *blks, uint *diskn) {
@@ -429,5 +457,5 @@ int info_raid(uint *blkn, uint *blks, uint *diskn) {
 }
 
 int destroy_raid() {
-  return destroy_raid0();
+  return destroy_raid01();
 }
