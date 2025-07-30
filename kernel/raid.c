@@ -120,10 +120,12 @@ int disk_fail_raid0(int diskn) {
   int metadata_size = sizeof(struct raid_data);
 
   uchar buffer[BSIZE];
-  for (int i = 0; i < BSIZE; i++)
+  for (int i = 0; i < metadata_size; i++)
     buffer[i] = metadata_ptr[i];
 
   write_block(1, 0, buffer);
+
+  return 0;
 }
 
 int disk_repaired_raid0(int diskn) {
@@ -133,7 +135,7 @@ int disk_repaired_raid0(int diskn) {
 
 int destroy_raid0() {
   // write all zeores in the first block of the first disk
-  char buffer[BSIZE];
+  uchar buffer[BSIZE];
 
   for (int i = 0; i < BSIZE; i++)
     buffer[i] = 0;
