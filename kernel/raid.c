@@ -64,6 +64,10 @@ void load_raid0_data_cache() {
 }
 
 int read_raid0(int blkn, uchar* data) {
+  // cannot read first block
+  if (blkn == 0)
+    return -1;
+
   load_raid0_data_cache();
 
   // Check if raid is working
@@ -73,7 +77,7 @@ int read_raid0(int blkn, uchar* data) {
   // calculate disk number where desired block is stored
   int diskn = blkn % (VIRTIO_RAID_DISK_END - 1) + 1;
   // calculate block number on the disk
-  int blockn = blkn / (VIRTIO_RAID_DISK_END - 1);
+  int blockn = blkn / (VIRTIO_RAID_DISK_END - 1) + 1;
 
   // write block from the calculated disk in the calculated block
   read_block(diskn, blockn, data);
@@ -82,6 +86,10 @@ int read_raid0(int blkn, uchar* data) {
 }
 
 int write_raid0(int blkn, uchar* data) {
+  // cannot read first block
+  if (blkn == 0)
+    return -1;
+
   load_raid0_data_cache();
 
   // Check if raid is working
@@ -91,7 +99,7 @@ int write_raid0(int blkn, uchar* data) {
   // calculate disk number where desired block is stored
   int diskn = blkn % (VIRTIO_RAID_DISK_END - 1) + 1;
   // calculate block number on the disk
-  int blockn = blkn / (VIRTIO_RAID_DISK_END - 1);
+  int blockn = blkn / (VIRTIO_RAID_DISK_END - 1) + 1;
 
   // write block on the calculated disk in the calculated block
   write_block(diskn, blockn, data);
@@ -174,6 +182,9 @@ void load_raid1_data_cache() {
 }
 
 int read_raid1(int blkn, uchar* data) {
+  // cannot read from the first block
+  if (blkn == 0) return -1;
+
   load_raid1_data_cache();
 
   // find working disk
@@ -188,28 +199,30 @@ int read_raid1(int blkn, uchar* data) {
   if (disk_number == -1) return -1;
 
   // first block is reserved for raid data structure
-  int block = blkn + 1;
-  // invalid block number
-  if (block < 1 || block > NUMBER_OF_BLOCKS - 1) return -1;
 
-  read_block(disk_number, block, data);
+  // invalid block number
+  if (blkn < 1 || blkn > NUMBER_OF_BLOCKS - 1) return -1;
+
+  read_block(disk_number, blkn, data);
 
   return 0;
 }
 
 int write_raid1(int blkn, uchar* data) {
+  // cannot read from the first block
+  if (blkn == 0) return -1;
+
   load_raid1_data_cache();
 
-  int block = blkn + 1;
   // invalid block
-  if (block < 1 || block > NUMBER_OF_BLOCKS - 1) return -1;
+  if (blkn < 1 || blkn > NUMBER_OF_BLOCKS - 1) return -1;
 
   int ret = -1;
   // iteratre over all disks
   for (int disk_num = VIRTIO_RAID_DISK_START; disk_num <= VIRTIO_RAID_DISK_END; disk_num++) {
     // check if disk is working
     if (raid1_data_cache[disk_num-1].working == 1) {
-      write_block(disk_num, block, data);
+      write_block(disk_num, blkn, data);
       ret = 0;
     }
   }
@@ -309,6 +322,7 @@ int destroy_raid1() {
 
 int init_raid(enum RAID_TYPE raid) {
   switch (raid) {
+    case RAID0: return init_raid0();
     case RAID1: return init_raid1();
     
     default:
@@ -319,27 +333,19 @@ int init_raid(enum RAID_TYPE raid) {
 }
 
 int read_raid(int blkn, uchar* data) {
-  read_raid1(blkn, data);
-
-  return 0;
+  return read_raid0(blkn, data);
 }
 
 int write_raid(int blkn, uchar* data) {
-  write_raid1(blkn, data);
-
-  return 0;
+  return write_raid0(blkn, data);
 }
 
 int disk_fail_raid(int diskn) {
-  disk_fail_raid1(diskn);
-
-  return 0;
+  return disk_fail_raid0(diskn);
 }
 
 int disk_repaired_raid(int diskn) {
-  disk_repaired_raid1(diskn);
-
-  return 0;
+  return disk_repaired_raid0(diskn);
 }
 
 int info_raid(uint *blkn, uint *blks, uint *diskn) {
@@ -351,7 +357,5 @@ int info_raid(uint *blkn, uint *blks, uint *diskn) {
 }
 
 int destroy_raid() {
-  destroy_raid1();
-
-  return 0;
+  return destroy_raid0();
 }
