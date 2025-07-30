@@ -15,10 +15,7 @@ int main() {
   blk[1] = 2;
   blk[2] = 3;
 
-  disk_fail_raid(1);
-
-  int res = write_raid(1, blk);
-  printf("%d\n", res);
+  write_raid(1, blk);
   free(blk);
 
   uchar* buffer = malloc(block_size);

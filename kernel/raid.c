@@ -104,8 +104,8 @@ int write_raid0(int blkn, uchar* data) {
   // calculate disk number where desired block is stored
   int diskn = blkn % num_of_disks + 1;
   // calculate block number on the disk
-  int blockn = blkn / num_of_disks + 1;
-  if (diskn == 1) blockn++:
+  int blockn = blkn / num_of_disks;
+  if (diskn == 1) blockn++;
 
   // write block on the calculated disk in the calculated block
   write_block(diskn, blockn, data);
