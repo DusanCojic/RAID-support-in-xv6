@@ -180,7 +180,7 @@ int init_raid1() {
     buffer[i] = metadata_ptr[i];
 
   // writing raid data to all disks and cache
-  for (int i = VIRTIO_RAID_DISK_START; i < VIRTIO_RAID_DISK_END; i++) {
+  for (int i = VIRTIO_RAID_DISK_START; i <= VIRTIO_RAID_DISK_END; i++) {
     write_block(i, 0, buffer);
     raid1_data_cache[i-1] = metadata;
   }
@@ -195,7 +195,7 @@ void load_raid1_data_cache() {
   if (raid1_data_cache_loaded) return;
 
   uchar buffer[BSIZE];
-  for (int i = VIRTIO_RAID_DISK_START; i < VIRTIO_RAID_DISK_END; i++) {
+  for (int i = VIRTIO_RAID_DISK_START; i <= VIRTIO_RAID_DISK_END; i++) {
     // read first block of the disk
     read_block(i, 0, buffer);
 
@@ -218,7 +218,7 @@ int read_raid1(int blkn, uchar* data) {
 
   // find working disk
   int disk_number = -1;
-  for (int i = VIRTIO_RAID_DISK_START; i < VIRTIO_RAID_DISK_END; i++)
+  for (int i = VIRTIO_RAID_DISK_START; i <= VIRTIO_RAID_DISK_END; i++)
     if (raid1_data_cache[i-1].working == 1) {
       disk_number = i;
       break;
@@ -248,7 +248,7 @@ int write_raid1(int blkn, uchar* data) {
 
   int ret = -1;
   // iteratre over all disks
-  for (int disk_num = VIRTIO_RAID_DISK_START; disk_num < VIRTIO_RAID_DISK_END; disk_num++) {
+  for (int disk_num = VIRTIO_RAID_DISK_START; disk_num <= VIRTIO_RAID_DISK_END; disk_num++) {
     // check if disk is working
     if (raid1_data_cache[disk_num-1].working == 1) {
       write_block(disk_num, blkn, data);
@@ -260,7 +260,7 @@ int write_raid1(int blkn, uchar* data) {
 }
 
 int disk_fail_raid1(int diskn) {
-  if (diskn < 1 || diskn >= VIRTIO_RAID_DISK_END) return -1;
+  if (diskn < 1 || diskn > VIRTIO_RAID_DISK_END) return -1;
 
   // load cache if not loaded
   load_raid1_data_cache();
@@ -295,7 +295,7 @@ int disk_fail_raid1(int diskn) {
 }
 
 int disk_repaired_raid1(int diskn) {
-  if (diskn < 1 || diskn >= VIRTIO_RAID_DISK_END) return -1;
+  if (diskn < 1 || diskn > VIRTIO_RAID_DISK_END) return -1;
 
   // load cache if not loaded
   load_raid1_data_cache();
@@ -305,7 +305,7 @@ int disk_repaired_raid1(int diskn) {
 
   // find disk to copy data from
   int disk_to_copy = -1;
-  for (int i = VIRTIO_RAID_DISK_START; i < VIRTIO_RAID_DISK_END; i++)
+  for (int i = VIRTIO_RAID_DISK_START; i <= VIRTIO_RAID_DISK_END; i++)
     if (raid1_data_cache[i-1].working == 1) {
       disk_to_copy = i;
       break;
