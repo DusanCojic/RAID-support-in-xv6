@@ -19,8 +19,28 @@ struct raid_data {
 
 // RAID0
 
+// raid data that will be stored on the first block on the first disk
+struct raid_data raid0_data_cache;
+uchar raid0_data_cache_loaded = 0;
+
 int init_raid0() {
-  // To be implemented
+  // initializing raid data structure
+  raid0_data_cache.raid_type = RAID0;
+  raid0_data_cache.working = 1;
+
+  // serializing raid data structure to a buffer with size of one block
+  uchar buffer[BSIZE];
+  uchar* metadata_ptr = (uchar*)(&raid0_data_cache);
+  int metadata_size = sizeof(struct raid_data);
+
+  for (int i = 0; i < metadata_size; i++)
+    buffer[i] = metadata_ptr[i];
+
+  // write raid structure to a first block of the first disk
+  write_block(1, 0, buffer);
+
+  raid0_data_cache_loaded = 1;
+
   return 0;
 }
 
