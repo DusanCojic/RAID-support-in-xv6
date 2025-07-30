@@ -44,8 +44,23 @@ int init_raid0() {
   return 0;
 }
 
+// loading raid data cache if not loaded
 void load_raid0_data_cache() {
-  // To be implemented
+  if (raid0_data_cache_loaded == 1) return; // cache loaded
+
+  uchar buffer[BSIZE]; // buffer to put the content of the first block with cache data
+  struct raid_data metadata;
+  uchar* metadata_ptr = (uchar*)(&metadata);
+  int metadata_size = sizeof(struct raid_data);
+
+  read_block(1, 0, buffer); // read first block of the first disk
+
+  // initialize cache data structure
+  for (int i = 0; i < metadata_size; i++)
+    metadata_ptr[i] = buffer[i];
+
+  // indicate that the cache is loaded
+  raid0_data_cache_loaded = 1;
 }
 
 int read_raid0(int blkn, uchar* data) {
