@@ -355,7 +355,7 @@ int destroy_raid1() {
 // RAID 0+1
 
 // cache that stores raid data structure
-struct raid_data raid01_data_cache;
+struct raid_data raid01_data_cache[VIRTIO_RAID_DISK_END];
 uchar raid01_data_cache_loaded = 0;
 
 int init_raid01() {
@@ -376,12 +376,13 @@ int init_raid01() {
   for (int i = 0; i < metadata_size; i++)
     buffer[i] = metadata_ptr[i];
 
-  // write serialized metadata on first two disks in raid
-  write_block(VIRTIO_RAID_DISK_START, 0, buffer);
-  write_block(VIRTIO_RAID_DISK_START + 1, 0, buffer);
+  // write serialized metadata on every disk in raid and initialize cache
+  for (int i = VIRTIO_RAID_DISK_START; i < VIRTIO_RAID_DISK_END; i++) {
+    write_block(i, 0, buffer);
+    raid01_data_cache[i-1] = metadata;
+  }
 
-  // initialize cache
-  raid01_data_cache = metadata;
+  // indicate that the cache is loaded
   raid01_data_cache_loaded = 1;
 
   return 0;
