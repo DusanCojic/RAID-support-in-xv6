@@ -389,7 +389,25 @@ int init_raid01() {
 }
 
 void load_raid01_data_cache() {
-  // To be implemented
+  if (raid01_data_cache_loaded == 1)
+    return;
+
+  // read 0 block on every disk and initialize cache
+  for (int diskn = VIRTIO_RAID_DISK_START; diskn < VIRTIO_RAID_DISK_END; diskn++) {
+    uchar buffer[BSIZE];
+    read_block(diskn, 0, buffer);
+
+    struct raid_data metadata;
+    uchar* metadata_ptr = (uchar*)(&metadata);
+    int metadata_size = sizeof(struct raid_data);
+
+    for (int i = 0; i < metadata_size; i++)
+      metadata_ptr[i] = buffer[i];
+
+    raid01_data_cache[diskn - 1] = metadata;
+  }
+
+  raid01_data_cache_loaded = 1;
 }
 
 int read_raid01(int blkn, uchar* data) {
