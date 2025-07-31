@@ -354,8 +354,36 @@ int destroy_raid1() {
 
 // RAID 0+1
 
+// cache that stores raid data structure
+struct raid_data raid01_data_cache;
+uchar raid01_data_cache_loaded = 0;
+
 int init_raid01() {
-  // To be implemented
+  // check for even number of disks, because one disk is reserved by xv6 (need even number of disks without it)
+  if (VIRTIO_RAID_DISK_END % 2 == 0 || VIRTIO_RAID_DISK_END - 1 < 2)
+    return -1;
+
+  // initialize metadata
+  struct raid_data metadata;
+  metadata.raid_type = RAID0_1;
+  metadata.working = 1;
+
+  // serialize metadata
+  uchar buffer[BSIZE];
+  uchar* metadata_ptr = (uchar*)(&metadata);
+  int metadata_size = sizeof(struct raid_data);
+
+  for (int i = 0; i < metadata_size; i++)
+    buffer[i] = metadata_ptr[i];
+
+  // write serialized metadata on first two disks in raid
+  write_block(VIRTIO_RAID_DISK_START, 0, buffer);
+  write_block(VIRTIO_RAID_DISK_START + 1, 0, buffer);
+
+  // initialize cache
+  raid01_data_cache = metadata;
+  raid01_data_cache_loaded = 1;
+
   return 0;
 }
 
