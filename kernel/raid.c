@@ -668,19 +668,19 @@ int init_raid(enum RAID_TYPE raid) {
 }
 
 int read_raid(int blkn, uchar* data) {
-  return read_raid4(blkn, data);
+  return read_raid01(blkn, data);
 }
 
 int write_raid(int blkn, uchar* data) {
-  return write_raid4(blkn, data);
+  return write_raid01(blkn, data);
 }
 
 int disk_fail_raid(int diskn) {
-  return disk_fail_raid4(diskn);
+  return disk_fail_raid01(diskn);
 }
 
 int disk_repaired_raid(int diskn) {
-  return disk_repaired_raid4(diskn);
+  return disk_repaired_raid01(diskn);
 }
 
 int info_raid(uint *blkn, uint *blks, uint *diskn) {
