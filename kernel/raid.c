@@ -421,8 +421,6 @@ int read_raid01(int blkn, uchar* data) {
   int diskn = group_number * 2 + 1;
   int blockn = blkn / logical_disks;
 
-  printf("%d %d %d %d\n", logical_disks, group_number, diskn, blockn);
-
   if (blockn == 0)
     return -1;
 
@@ -455,8 +453,6 @@ int write_raid01(int blkn, uchar* data) {
   int diskn = group_number * 2 + 1;
   int blockn = blkn / logical_disks;
 
-  printf("%d %d %d %d\n", logical_disks, group_number, diskn, blockn);
-
   // 0th block oon every disk is reserved for raid metadata
   if (blockn == 0)
     return -1;
@@ -483,7 +479,26 @@ int write_raid01(int blkn, uchar* data) {
 }
 
 int disk_fail_raid01(int diskn) {
-  // To be implemented
+  // diskn out of range
+  if (diskn < 1 || diskn > VIRTIO_RAID_DISK_END)
+    return -1;
+
+  // load cache
+  load_raid01_data_cache();
+
+  // mark disk as not working
+  raid01_data_cache[diskn].working = 0;
+
+  // write changed raid data to the disk
+  uchar* metadata_ptr = (uchar*)(&raid01_data_cache[diskn]);
+  int metadata_size = sizeof(struct raid_data);
+
+  uchar buffer[BSIZE];
+  for (int i = 0; i < metadata_size; i++)
+    buffer[i] = metadata_ptr[i];
+
+  write_block(diskn, 0, buffer);
+  
   return 0;
 }
 
