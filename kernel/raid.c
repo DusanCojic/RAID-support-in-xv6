@@ -74,10 +74,10 @@ int read_raid0(int blkn, uchar* data) {
   if (raid0_data_cache.working == 0)
     return -1;
     
-  int num_of_disks = VIRTIO_RAID_DISK_END - 1;
+  int num_of_disks = VIRTIO_RAID_DISK_END;
 
   // calculate disk number where desired block is stored
-  int diskn = blkn % num_of_disks+ 1;
+  int diskn = blkn % num_of_disks + 1;
   // calculate block number on the disk
   int blockn = blkn / num_of_disks;
   if (diskn == 1) blockn++;
@@ -99,7 +99,7 @@ int write_raid0(int blkn, uchar* data) {
   if (raid0_data_cache.working == 0)
     return -1;
 
-  int num_of_disks = VIRTIO_RAID_DISK_END - 1;
+  int num_of_disks = VIRTIO_RAID_DISK_END;
 
   // calculate disk number where desired block is stored
   int diskn = blkn % num_of_disks + 1;
@@ -360,7 +360,7 @@ uchar raid01_data_cache_loaded = 0;
 
 int init_raid01() {
   // check for even number of disks, because one disk is reserved by xv6 (need even number of disks without it)
-  if (VIRTIO_RAID_DISK_END % 2 == 0 || VIRTIO_RAID_DISK_END - 1 < 2)
+  if (VIRTIO_RAID_DISK_END % 2 != 0 || VIRTIO_RAID_DISK_END < 2)
     return -1;
 
   // initialize metadata
@@ -377,7 +377,7 @@ int init_raid01() {
     buffer[i] = metadata_ptr[i];
 
   // write serialized metadata on every disk in raid and initialize cache
-  for (int i = VIRTIO_RAID_DISK_START; i < VIRTIO_RAID_DISK_END; i++) {
+  for (int i = VIRTIO_RAID_DISK_START; i <= VIRTIO_RAID_DISK_END; i++) {
     write_block(i, 0, buffer);
     raid01_data_cache[i-1] = metadata;
   }
@@ -393,7 +393,7 @@ void load_raid01_data_cache() {
     return;
 
   // read 0 block on every disk and initialize cache
-  for (int diskn = VIRTIO_RAID_DISK_START; diskn < VIRTIO_RAID_DISK_END; diskn++) {
+  for (int diskn = VIRTIO_RAID_DISK_START; diskn <= VIRTIO_RAID_DISK_END; diskn++) {
     uchar buffer[BSIZE];
     read_block(diskn, 0, buffer);
 
@@ -416,12 +416,12 @@ int read_raid01(int blkn, uchar* data) {
   load_raid01_data_cache();
 
   // calculate disk and block number
-  int logical_disks = (VIRTIO_RAID_DISK_END - 1) / 2;
+  int logical_disks = VIRTIO_RAID_DISK_END / 2;
   int group_number = blkn % logical_disks;
   int diskn = group_number * 2 + 1;
   int blockn = blkn / logical_disks;
 
-  printf("%d %d %d %d", logical_disks, group_number, diskn, blockn);
+  printf("%d %d %d %d\n", logical_disks, group_number, diskn, blockn);
 
   if (blockn == 0)
     return -1;
@@ -450,12 +450,12 @@ int write_raid01(int blkn, uchar* data) {
   load_raid01_data_cache();
 
   // calculate disk and block number
-  int logical_disks = (VIRTIO_RAID_DISK_END - 1) / 2;
+  int logical_disks = VIRTIO_RAID_DISK_END / 2;
   int group_number = blkn % logical_disks;
   int diskn = group_number * 2 + 1;
   int blockn = blkn / logical_disks;
 
-  printf("%d %d %d %d", logical_disks, group_number, diskn, blockn);
+  printf("%d %d %d %d\n", logical_disks, group_number, diskn, blockn);
 
   // 0th block oon every disk is reserved for raid metadata
   if (blockn == 0)
