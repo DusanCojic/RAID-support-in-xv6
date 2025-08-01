@@ -59,6 +59,8 @@ int init_raid0() {
 
   raid_data_cache_loaded = 1;
 
+  kfree(buffer);
+
   return 0;
 }
 
@@ -130,6 +132,8 @@ int disk_fail_raid0(int diskn) {
 
   write_block(1, 0, buffer);
 
+  kfree(buffer);
+
   return 0;
 }
 
@@ -181,6 +185,8 @@ int init_raid1() {
   }
 
   raid_data_cache_loaded = 1;
+
+  kfree(buffer);
 
   return 0;
 }
@@ -266,6 +272,8 @@ int disk_fail_raid1(int diskn) {
 
   write_block(diskn, 0, buffer);
 
+  kfree(buffer);
+
   return 0;
 }
 
@@ -302,6 +310,8 @@ int disk_repaired_raid1(int diskn) {
   // write updated cache to the corresponding disk
   uchar* metadata_ptr = (uchar*)(&raid_data_cache[diskn - 1]);
   write_block(diskn, 0, metadata_ptr);
+
+  kfree(buffer);
 
   return 0;
 }
@@ -355,6 +365,8 @@ int init_raid01() {
 
   // indicate that the cache is loaded
   raid_data_cache_loaded = 1;
+
+  kfree(buffer);
 
   return 0;
 }
@@ -456,9 +468,9 @@ int disk_fail_raid01(int diskn) {
   for (int i = 0; i < metadata_size; i++)
     buffer[i] = metadata_ptr[i];
 
-  buffer[0] = buffer[0];
-
   write_block(diskn, 0, buffer);
+
+  kfree(buffer);
   
   return 0;
 }
@@ -492,6 +504,8 @@ int disk_repaired_raid01(int diskn) {
     buffer[i] = metadata_ptr[i];
 
   write_block(diskn, 0, buffer);
+
+  kfree(buffer);
 
   return 0;
 }
@@ -544,6 +558,8 @@ int init_raid4() {
 
   // indicate that the cache is loaded
   raid_data_cache_loaded = 1;
+
+  kfree(buffer);
 
   return 0;
 }
