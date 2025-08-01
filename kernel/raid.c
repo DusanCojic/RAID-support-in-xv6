@@ -352,7 +352,7 @@ int destroy_raid1() {
 
 
 
-// RAID 0+1
+// RAID01
 
 // cache that stores raid data structure
 struct raid_data raid01_data_cache[VIRTIO_RAID_DISK_END];
@@ -567,11 +567,52 @@ int destroy_raid01() {
 
 
 
+// RADI4
+
+int init_raid4() {
+  // To be implemented
+  return 0;
+}
+
+void load_raid4_data_cache() {
+  // To be implemented
+}
+
+int read_raid4(int blkn, uchar* data) {
+  // To be implemented
+  return 0;
+}
+
+int write_raid4(int blkn, uchar* data) {
+  // To be implemented
+  return 0;
+}
+
+int disk_fail_raid4(int diskn) {
+  // To be implemented
+  return 0;
+}
+
+int disk_repaired_raid4(int diskn) {
+  // To be implemented
+  return 0;
+}
+
+int destroy_raid4() {
+  // To be implemented
+  return 0;
+}
+
+
+
+
+
 int init_raid(enum RAID_TYPE raid) {
   switch (raid) {
     case RAID0: return init_raid0();
     case RAID1: return init_raid1();
     case RAID0_1: return init_raid01();
+    case RAID4: return init_raid4();
     
     default:
       return -1;
@@ -581,19 +622,19 @@ int init_raid(enum RAID_TYPE raid) {
 }
 
 int read_raid(int blkn, uchar* data) {
-  return read_raid01(blkn, data);
+  return read_raid4(blkn, data);
 }
 
 int write_raid(int blkn, uchar* data) {
-  return write_raid01(blkn, data);
+  return write_raid4(blkn, data);
 }
 
 int disk_fail_raid(int diskn) {
-  return disk_fail_raid01(diskn);
+  return disk_fail_raid4(diskn);
 }
 
 int disk_repaired_raid(int diskn) {
-  return disk_repaired_raid01(diskn);
+  return disk_repaired_raid4(diskn);
 }
 
 int info_raid(uint *blkn, uint *blks, uint *diskn) {
@@ -605,5 +646,5 @@ int info_raid(uint *blkn, uint *blks, uint *diskn) {
 }
 
 int destroy_raid() {
-  return destroy_raid01();
+  return destroy_raid4();
 }
