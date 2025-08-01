@@ -47,7 +47,7 @@ int init_raid0() {
   raid_data_cache[0].working = 1;
 
   // serializing raid data structure to a buffer with size of one block
-  uchar buffer[BSIZE];
+  uchar* buffer = (uchar*)kalloc();
   uchar* metadata_ptr = (uchar*)(&raid_data_cache[0]);
   int metadata_size = sizeof(struct raid_data);
 
@@ -124,7 +124,7 @@ int disk_fail_raid0(int diskn) {
   uchar* metadata_ptr = (uchar*)(&raid_data_cache[0]);
   int metadata_size = sizeof(struct raid_data);
 
-  uchar buffer[BSIZE];
+  uchar* buffer = (uchar*)kalloc();
   for (int i = 0; i < metadata_size; i++)
     buffer[i] = metadata_ptr[i];
 
@@ -167,7 +167,7 @@ int init_raid1() {
   metadata.working = 1;
 
   // serializing raid data structure to a buffer with size of one block
-  uchar buffer[BSIZE];
+  uchar* buffer = (uchar*)kalloc();
   uchar* metadata_ptr = (uchar*)(&metadata);
   int metadata_size = sizeof(struct raid_data);
 
@@ -248,7 +248,7 @@ int disk_fail_raid1(int diskn) {
 
   // deserialize disk metadata
   // read metadata for the disk
-  uchar buffer[BSIZE];
+  uchar* buffer = (uchar*)kalloc();
   read_block(diskn, 0, buffer);
 
   struct raid_data metadata;
@@ -289,8 +289,8 @@ int disk_repaired_raid1(int diskn) {
   if (disk_to_copy == -1) return -1;
 
   // copy every block from working disk to repaired disk
+  uchar* buffer = (uchar*)kalloc();
   for (int block_number = 1; block_number < NUMBER_OF_BLOCKS; block_number++) {
-    uchar buffer[BSIZE];
     read_block(disk_to_copy, block_number, buffer);
 
     write_block(diskn, block_number, buffer);
@@ -310,10 +310,10 @@ int destroy_raid1() {
   load_raid_data_cache();
 
   // write all zeroes in first block of every disk
+  uchar* buffer = (uchar*)kalloc();
   for (int i = VIRTIO_RAID_DISK_START; i <= VIRTIO_RAID_DISK_END; i++) {
     if (!raid_data_cache[i - 1].working) continue;
 
-    uchar buffer[BSIZE];
     for (int j = 0; j < BSIZE; j++)
       buffer[j] = 0;
 
@@ -340,7 +340,7 @@ int init_raid01() {
   metadata.working = 1;
   // serialize metadata
 
-  uchar buffer[BSIZE];
+  uchar* buffer = (uchar*)kalloc();
   uchar* metadata_ptr = (uchar*)(&metadata);
   int metadata_size = sizeof(struct raid_data);
 
@@ -452,7 +452,7 @@ int disk_fail_raid01(int diskn) {
   metadata_ptr = metadata_ptr;
   metadata_size = metadata_size;
 
-  uchar buffer[BSIZE];
+  uchar* buffer = (uchar*)kalloc();
   for (int i = 0; i < metadata_size; i++)
     buffer[i] = metadata_ptr[i];
 
@@ -475,7 +475,7 @@ int disk_repaired_raid01(int diskn) {
     return -1;
 
   // copy every block from disk that works
-  uchar buffer[BSIZE];
+  uchar* buffer = (uchar*)kalloc();
   for (int blockn = 0; blockn < NUMBER_OF_BLOCKS; blockn++) {
     read_block(disk_to_copy_from, blockn, buffer);
     write_block(diskn, blockn, buffer);
