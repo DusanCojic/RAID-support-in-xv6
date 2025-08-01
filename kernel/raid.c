@@ -569,7 +569,7 @@ int destroy_raid01() {
 
 // RADI4
 
-struct raid_data raid4_data_cache[2];
+struct raid_data raid4_data_cache[VIRTIO_RAID_DISK_END];
 uchar raid4_data_cache_loaded = 0;
 
 int init_raid4() {
@@ -595,7 +595,7 @@ int init_raid4() {
   raid4_data_cache[0] = metadata;
 
   write_block(VIRTIO_RAID_DISK_END, 0, buffer);
-  raid01_data_cache[1] = metadata;
+  raid01_data_cache[VIRTIO_RAID_DISK_END - 1] = metadata;
 
   // indicate that the cache is loaded
   raid01_data_cache_loaded = 1;
@@ -629,14 +629,26 @@ void load_raid4_data_cache() {
   for (int i = 0; i < metadata_size; i++)
     metadata_ptr[i] = buffer[i];
 
-  raid01_data_cache[1] = metadata;
+  raid01_data_cache[VIRTIO_RAID_DISK_END - 1] = metadata;
 
   // indicate that the cache is loaded
   raid4_data_cache_loaded = 1;
 }
 
 int read_raid4(int blkn, uchar* data) {
-  // To be implemented
+  // cannot read the 0th block (raid data structure)
+  if (blkn == 0)
+    return -1;
+
+  load_raid4_data_cache();
+
+  // calculate disk and block to write data
+  int data_disks = VIRTIO_RAID_DISK_END - 1;
+  int diskn = blkn % data_disks + 1;
+  int blockn = blkn / data_disks;
+
+  read_block(diskn, blockn, data);
+
   return 0;
 }
 
@@ -645,14 +657,12 @@ int write_raid4(int blkn, uchar* data) {
   if (blkn == 0)
     return -1;
 
+  load_raid4_data_cache();
+
   // calculate disk and block to write data
   int data_disks = VIRTIO_RAID_DISK_END - 1;
   int diskn = blkn % data_disks + 1;
   int blockn = blkn / data_disks;
-
-  // cannot access 0th block on the first disk (raid data structure)
-  if (diskn == 1 && blockn == 0)
-    return -2;
   
   write_block(diskn, blockn, data);
 
