@@ -378,7 +378,7 @@ int init_raid01() {
 
   // write serialized metadata on every disk in raid and initialize cache
   for (int i = VIRTIO_RAID_DISK_START; i <= VIRTIO_RAID_DISK_END; i++) {
-    write_block(i, 0, buffer);
+    write_block(i - 1, 0, buffer);
     raid01_data_cache[i-1] = metadata;
   }
 
@@ -427,12 +427,12 @@ int read_raid01(int blkn, uchar* data) {
   uchar read = 0;
 
   // try to read block from one of the disks in mirror
-  if (raid01_data_cache[diskn].working == 1) {
-    read_block(diskn, blockn, data);
+  if (raid01_data_cache[diskn - 1].working == 1) {
+    read_block(diskn - 1, blockn, data);
     read = 1;
   }
-  else if (raid01_data_cache[diskn + 1].working == 1) {
-    read_block(diskn + 1, blockn, data);
+  else if (raid01_data_cache[diskn].working == 1) {
+    read_block(diskn, blockn, data);
     read = 1;
   }
 
@@ -460,14 +460,14 @@ int write_raid01(int blkn, uchar* data) {
   uchar write = 0;
 
   // try to write on the first disk in mirror
-  if (raid01_data_cache[diskn].working == 1) {
-    write_block(diskn, blockn, data);
+  if (raid01_data_cache[diskn - 1].working == 1) {
+    write_block(diskn - 1, blockn, data);
     write = 1;
   }
 
   // try to write on the second disk in mirror
-  if (raid01_data_cache[diskn + 1].working == 1) {
-    write_block(diskn + 1, blockn, data);
+  if (raid01_data_cache[diskn].working == 1) {
+    write_block(diskn, blockn, data);
     write = 1;
   }
 
@@ -486,11 +486,15 @@ int disk_fail_raid01(int diskn) {
   // load cache
   load_raid01_data_cache();
 
+  // cannot set disk as invalid if already invalid
+  if (raid01_data_cache[diskn - 1].working == 0)
+    return -1;
+
   // mark disk as not working
-  raid01_data_cache[diskn].working = 0;
+  raid01_data_cache[diskn - 1].working = 0;
 
   // write changed raid data to the disk
-  uchar* metadata_ptr = (uchar*)(&raid01_data_cache[diskn]);
+  uchar* metadata_ptr = (uchar*)(&raid01_data_cache[diskn - 1]);
   int metadata_size = sizeof(struct raid_data);
 
   uchar buffer[BSIZE];
@@ -503,7 +507,35 @@ int disk_fail_raid01(int diskn) {
 }
 
 int disk_repaired_raid01(int diskn) {
-  // To be implemented
+  // load cache
+  load_raid01_data_cache();
+
+  // find disk to copy data from
+  int disk_to_copy_from = diskn % 2 != 0 ? diskn + 1 : diskn - 1;
+
+  // disk to copy from is not working
+  if (raid01_data_cache[disk_to_copy_from - 1].working == 0)
+    return -1;
+
+  // copy every block from disk that works
+  uchar buffer[BSIZE];
+  for (int blockn = 0; blockn < NUMBER_OF_BLOCKS; blockn++) {
+    read_block(disk_to_copy_from, blockn, buffer);
+    write_block(diskn, blockn, buffer);
+  }
+
+  // set disk as working
+  raid01_data_cache[diskn - 1].working = 1;
+
+  // write updated cache data to corresponding disk
+  uchar* metadata_ptr = (uchar*)(&raid01_data_cache[diskn - 1]);
+  int metadata_size = sizeof(struct raid_data);
+
+  for (int i = 0; i < metadata_size; i++)
+    buffer[i] = metadata_ptr[i];
+
+  write_block(diskn, 0, buffer);
+
   return 0;
 }
 
