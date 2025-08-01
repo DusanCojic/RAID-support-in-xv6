@@ -569,13 +569,64 @@ int destroy_raid01() {
 
 // RADI4
 
+struct raid_data raid4_data_cache[VIRTIO_RAID_DISK_END];
+uchar raid4_data_cache_loaded = 0;
+
 int init_raid4() {
-  // To be implemented
+  // cannot implement raid4 with less than 2 disks
+  if (VIRTIO_RAID_DISK_END < 2)
+    return -1;
+
+  // initialize metadata
+  struct raid_data metadata;
+  metadata.raid_type = RAID4;
+  metadata.working = 1;
+
+  // serialize metadata
+  uchar buffer[BSIZE];
+  uchar* metadata_ptr = (uchar*)(&metadata);
+  int metadata_size = sizeof(struct raid_data);
+
+  for (int i = 0; i < metadata_size; i++)
+    buffer[i] = metadata_ptr[i];
+
+  // write metadata to 0th block of every disk and initialize cache
+  for (int i = VIRTIO_RAID_DISK_START; i <= VIRTIO_RAID_DISK_END; i++) {
+    write_block(i, 0, buffer);
+
+    raid4_data_cache[i - 1] = metadata;
+  }
+
+  // indicate that the cache is loaded
+  raid01_data_cache_loaded = 1;
+
   return 0;
 }
 
 void load_raid4_data_cache() {
-  // To be implemented
+  // don't need to load cache if already loaded
+  if (raid4_data_cache_loaded)
+    return;
+
+  uchar buffer[BSIZE];
+  struct raid_data metadata;
+  uchar* metadata_ptr = (uchar*)(&metadata);
+  int metadata_size = sizeof(struct raid_data);
+
+  for (int diskn = VIRTIO_RAID_DISK_START; diskn <= VIRTIO_RAID_DISK_END; diskn++) {
+    // read 0th block
+    read_block(diskn, 0, buffer);
+
+    // deserialize data
+    for (int i = 0; i < metadata_size; i++)
+      metadata_ptr[i] = buffer[i];
+
+    // initialize cache
+    raid4_data_cache[diskn - 1] = metadata;
+  }
+
+  // indicate that the cache is loaded
+  raid4_data_cache_loaded = 1;
 }
 
 int read_raid4(int blkn, uchar* data) {
