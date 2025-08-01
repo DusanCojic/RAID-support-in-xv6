@@ -367,8 +367,8 @@ int init_raid01() {
   struct raid_data metadata;
   metadata.raid_type = RAID0_1;
   metadata.working = 1;
-
   // serialize metadata
+
   uchar buffer[BSIZE];
   uchar* metadata_ptr = (uchar*)(&metadata);
   int metadata_size = sizeof(struct raid_data);
@@ -378,8 +378,8 @@ int init_raid01() {
 
   // write serialized metadata on every disk in raid and initialize cache
   for (int i = VIRTIO_RAID_DISK_START; i <= VIRTIO_RAID_DISK_END; i++) {
-    write_block(i - 1, 0, buffer);
-    raid01_data_cache[i-1] = metadata;
+    write_block(i, 0, buffer);
+    raid01_data_cache[i - 1] = metadata;
   }
 
   // indicate that the cache is loaded
@@ -421,6 +421,8 @@ int read_raid01(int blkn, uchar* data) {
   int diskn = group_number * 2 + 1;
   int blockn = blkn / logical_disks;
 
+  // printf("Logical disk: %d\nGroup number: %d\nDisk1: %d\nDisk2: %d\nBlock: %d\n", logical_disks, group_number, diskn, diskn + 1, blockn);
+
   if (blockn == 0)
     return -1;
 
@@ -428,11 +430,11 @@ int read_raid01(int blkn, uchar* data) {
 
   // try to read block from one of the disks in mirror
   if (raid01_data_cache[diskn - 1].working == 1) {
-    read_block(diskn - 1, blockn, data);
+    read_block(diskn, blockn, data);
     read = 1;
   }
   else if (raid01_data_cache[diskn].working == 1) {
-    read_block(diskn, blockn, data);
+    read_block(diskn + 1, blockn, data);
     read = 1;
   }
 
@@ -453,6 +455,8 @@ int write_raid01(int blkn, uchar* data) {
   int diskn = group_number * 2 + 1;
   int blockn = blkn / logical_disks;
 
+  // printf("Logical disk: %d\nGroup number: %d\nDisk1: %d\nDisk2: %d\nBlock: %d\n", logical_disks, group_number, diskn, diskn + 1, blockn);
+
   // 0th block oon every disk is reserved for raid metadata
   if (blockn == 0)
     return -1;
@@ -461,13 +465,13 @@ int write_raid01(int blkn, uchar* data) {
 
   // try to write on the first disk in mirror
   if (raid01_data_cache[diskn - 1].working == 1) {
-    write_block(diskn - 1, blockn, data);
+    write_block(diskn, blockn, data);
     write = 1;
   }
 
   // try to write on the second disk in mirror
   if (raid01_data_cache[diskn].working == 1) {
-    write_block(diskn, blockn, data);
+    write_block(diskn + 1, blockn, data);
     write = 1;
   }
 
@@ -497,9 +501,14 @@ int disk_fail_raid01(int diskn) {
   uchar* metadata_ptr = (uchar*)(&raid01_data_cache[diskn - 1]);
   int metadata_size = sizeof(struct raid_data);
 
+  metadata_ptr = metadata_ptr;
+  metadata_size = metadata_size;
+
   uchar buffer[BSIZE];
   for (int i = 0; i < metadata_size; i++)
     buffer[i] = metadata_ptr[i];
+
+  buffer[0] = buffer[0];
 
   write_block(diskn, 0, buffer);
   

@@ -15,13 +15,34 @@ int main() {
   blk[1] = 2;
   blk[2] = 3;
 
-  write_raid(1, blk);
+  int res_w = write_raid(5, blk);
+  if (res_w != 0) {
+    printf("Failed to write\n");
+    free(blk);
+    return 0;
+  }
+
   free(blk);
 
-  uchar* buffer = malloc(block_size);
-  read_raid(1, buffer);
+  disk_fail_raid(3);
+  // disk_fail_raid(4);
 
-  printf("%d %d %d\n", buffer[0], buffer[1], buffer[2]);
+  uchar* buffer = malloc(block_size);
+  int res = read_raid(5, buffer);
+
+  if (res == 0)
+    printf("%d %d %d\n", buffer[0], buffer[1], buffer[2]);
+  else
+    printf("Failed to read\n");
+
+  disk_repaired_raid(3);
+
+  res = read_raid(5, buffer);
+
+  if (res == 0)
+    printf("%d %d %d\n", buffer[0], buffer[1], buffer[2]);
+  else
+    printf("Failed to read\n");
 
   return 0;
 }

@@ -52,7 +52,7 @@ endif
 
 
 ifndef DISKS
-DISKS := 4 # How many RAID disks
+DISKS := 4 # How many RAID disks	
 endif
 
 ifndef DISK_SIZE
