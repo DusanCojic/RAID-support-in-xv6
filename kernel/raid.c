@@ -407,6 +407,7 @@ void load_raid01_data_cache() {
     raid01_data_cache[diskn - 1] = metadata;
   }
 
+  // indicate that the cache is loaded
   raid01_data_cache_loaded = 1;
 }
 
@@ -416,7 +417,39 @@ int read_raid01(int blkn, uchar* data) {
 }
 
 int write_raid01(int blkn, uchar* data) {
-  // To be implemented
+  // load cache
+  load_raid01_data_cache();
+
+  // calculate disk and block number
+  int logical_disks = (VIRTIO_RAID_DISK_END - 1) / 2;
+  int group_number = blkn % logical_disks;
+  int diskn = group_number * 2 + 1;
+  int blockn = blkn / logical_disks;
+
+  printf("%d %d %d %d", logical_disks, group_number, diskn, blockn);
+
+  // 0th block oon every disk is reserved for raid metadata
+  if (blockn == 0)
+    return -1;
+
+  uchar write = 0;
+
+  // try to write on the first disk in mirror
+  if (raid01_data_cache[diskn].working == 1) {
+    write_block(diskn, blockn, data);
+    write = 1;
+  }
+
+  // try to write on the second disk in mirror
+  if (raid01_data_cache[diskn + 1].working == 1) {
+    write_block(diskn + 1, blockn, data);
+    write = 1;
+  }
+
+  // error if not written
+  if (write == 0)
+    return -2;
+
   return 0;
 }
 
