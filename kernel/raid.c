@@ -540,7 +540,17 @@ int disk_repaired_raid01(int diskn) {
 }
 
 int destroy_raid01() {
-  // To be implemented
+  // check for errors
+
+  // write all zeores in 0th block on the first two disks
+  uchar buffer[BSIZE];
+
+  for (int i = 0; i < BSIZE; i++)
+    buffer[i] = 0;
+
+  write_block(1, 0, buffer);
+  write_block(2, 0, buffer);
+
   return 0;
 }
 
