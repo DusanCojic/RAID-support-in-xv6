@@ -80,7 +80,7 @@ int read_raid0(int blkn, uchar* data) {
   int diskn = blkn % num_of_disks + 1;
   // calculate block number on the disk
   int blockn = blkn / num_of_disks;
-  if (diskn == 1) blockn++;
+  if (diskn == 1 && blockn == 0) return -2; // cannot access 0th block on the first disk
 
   // write block from the calculated disk in the calculated block
   read_block(diskn, blockn, data);
@@ -641,7 +641,44 @@ int read_raid4(int blkn, uchar* data) {
 }
 
 int write_raid4(int blkn, uchar* data) {
-  // To be implemented
+  // cannot write to the 0th block (raid data structure)
+  if (blkn == 0)
+    return -1;
+
+  // calculate disk and block to write data
+  int data_disks = VIRTIO_RAID_DISK_END - 1;
+  int diskn = blkn % data_disks + 1;
+  int blockn = blkn / data_disks;
+
+  // cannot access 0th block on the first disk (raid data structure)
+  if (diskn == 1 && blockn == 0)
+    return -2;
+  
+  write_block(diskn, blockn, data);
+
+  // calculate parity
+  uchar buffer[BSIZE];
+
+  uchar parity[BSIZE] = { 0 };
+  for (int i = VIRTIO_RAID_DISK_START; i <= VIRTIO_RAID_DISK_END - 1; i++) {
+    // skip reading data that's just been written
+    if (i == diskn) continue;
+
+    // read requested block
+    read_block(i, blockn, buffer);
+
+    // calculate parity for every byte in the block
+    for (int j = 0; j < BSIZE; j++)
+      parity[j] ^= buffer[j];
+  }
+
+  // add data that's been wrote
+  for (int j = 0; j < BSIZE; j++)
+    parity[j] ^= data[j];
+
+  // write calculated parity on the parity disk in the calculated block
+  write_block(VIRTIO_RAID_DISK_END, blockn, parity);
+
   return 0;
 }
 
