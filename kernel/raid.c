@@ -11,7 +11,7 @@
 struct raid_data {
   enum RAID_TYPE raid_type;
   uchar working;
-};
+}; 
 
 
 
@@ -583,7 +583,7 @@ int init_raid4() {
   metadata.working = 1;
 
   // serialize metadata
-  uchar buffer[BSIZE];
+  uchar* buffer = (uchar*)kalloc();
   uchar* metadata_ptr = (uchar*)(&metadata);
   int metadata_size = sizeof(struct raid_data);
 
@@ -608,7 +608,7 @@ void load_raid4_data_cache() {
   if (raid4_data_cache_loaded)
     return;
 
-  uchar buffer[BSIZE];
+  uchar* buffer = (uchar*)kalloc();
   struct raid_data metadata;
   uchar* metadata_ptr = (uchar*)(&metadata);
   int metadata_size = sizeof(struct raid_data);
@@ -666,28 +666,33 @@ int write_raid4(int blkn, uchar* data) {
   
   write_block(diskn, blockn, data);
 
-  // calculate parity
-  uchar buffer[BSIZE];
+  // allocate one page of memory for reading buffer and one page for parity array
+  uchar* buffer = (uchar*)kalloc();
 
-  uchar parity[BSIZE] = { 0 };
-  for (int i = VIRTIO_RAID_DISK_START; i <= VIRTIO_RAID_DISK_END - 1; i++) {
-    // skip reading data that's just been written
+  uchar* parity = (uchar*)kalloc();
+  memset(parity, 0, BSIZE);
+
+  // /calculate parity
+  for (int i = VIRTIO_RAID_DISK_START; i < VIRTIO_RAID_DISK_END; i++) {
+    // not need to read current data
     if (i == diskn) continue;
 
-    // read requested block
     read_block(i, blockn, buffer);
 
-    // calculate parity for every byte in the block
     for (int j = 0; j < BSIZE; j++)
       parity[j] ^= buffer[j];
   }
 
-  // add data that's been wrote
+  // add current data to the parity
   for (int j = 0; j < BSIZE; j++)
     parity[j] ^= data[j];
 
-  // write calculated parity on the parity disk in the calculated block
+  // write parity to the parity disk
   write_block(VIRTIO_RAID_DISK_END, blockn, parity);
+
+  // free alocated memory
+  kfree(buffer);
+  kfree(parity);
 
   return 0;
 }
