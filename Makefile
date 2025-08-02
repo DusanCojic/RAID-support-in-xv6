@@ -56,11 +56,11 @@ DISKS := 4 # How many RAID disks
 endif
 
 ifndef DISK_SIZE
-DISK_SIZE := 128M
+DISK_SIZE := 128K
 endif
 
 ifndef DISK_SIZE_BYTES
-DISK_SIZE_BYTES := $(shell echo $(DISK_SIZE) | awk '{sub(/M/,""); print $$1 * 1024 * 1024}')
+DISK_SIZE_BYTES := $(shell echo $(DISK_SIZE) | awk '{sub(/K/,""); print $$1 * 1024}')
 endif
 
 RAID_DISKS = $(shell count=`expr $(DISKS) - 1`; for i in `seq 0 $$count`; do echo -n "disk_$$i.img "; done)
