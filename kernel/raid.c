@@ -16,6 +16,16 @@ struct raid_data {
 struct raid_data raid_data_cache[VIRTIO_RAID_DISK_END];
 uchar raid_data_cache_loaded = 0;
 
+void serialize(uchar* data, int size, uchar* buffer) {
+  for (int i = 0; i < size; i++)
+    buffer[i] = data[i];
+}
+
+void deserialize(uchar* data, int size, uchar* buffer) {
+  for (int i = 0; i < size; i++)
+    data[i] = buffer[i];
+}
+
 void load_raid_data_cache() {
   if (raid_data_cache_loaded) return;
 
@@ -27,17 +37,11 @@ void load_raid_data_cache() {
     // deserialize data
     struct raid_data metadata;
     uchar* metadata_ptr = (uchar*)(&metadata);
-    for (int j = 0; j < sizeof(metadata); j++)
-      metadata_ptr[j] = buffer[j];
+    deserialize(metadata_ptr, sizeof(struct raid_data), buffer);
 
     // load cache
     raid_data_cache[i-1] = metadata;
   }
-}
-
-void serialize(uchar* data, int size, uchar* buffer) {
-  for (int i = 0; i < size; i++)
-    buffer[i] = data[i];
 }
 
 
@@ -54,10 +58,7 @@ int init_raid0() {
   // serializing raid data structure to a buffer with size of one block
   uchar buffer[BSIZE];
   uchar* metadata_ptr = (uchar*)(&raid_data_cache[0]);
-  int metadata_size = sizeof(struct raid_data);
-
-  for (int i = 0; i < metadata_size; i++)
-    buffer[i] = metadata_ptr[i];
+  serialize(metadata_ptr, sizeof(struct raid_data), buffer);
 
   // write raid structure to a first block of the first disk
   write_block(1, 0, buffer);
@@ -134,12 +135,9 @@ int disk_fail_raid0(int diskn) {
   raid_data_cache[0].working = 0;
 
   // write modified cache in the first block of the first disk
-  uchar* metadata_ptr = (uchar*)(&raid_data_cache[0]);
-  int metadata_size = sizeof(struct raid_data);
-
   uchar buffer[BSIZE];
-  for (int i = 0; i < metadata_size; i++)
-    buffer[i] = metadata_ptr[i];
+  uchar* metadata_ptr = (uchar*)(&raid_data_cache[0]);
+  serialize(metadata_ptr, sizeof(struct raid_data), buffer);
 
   write_block(1, 0, buffer);
 
@@ -182,10 +180,7 @@ int init_raid1() {
   // serializing raid data structure to a buffer with size of one block
   uchar buffer[BSIZE];
   uchar* metadata_ptr = (uchar*)(&metadata);
-  int metadata_size = sizeof(struct raid_data);
-
-  for (int i = 0; i < metadata_size; i++)
-    buffer[i] = metadata_ptr[i];
+  serialize(metadata_ptr, sizeof(struct raid_data), buffer);
 
   // writing raid data to all disks and cache
   for (int i = VIRTIO_RAID_DISK_START; i <= VIRTIO_RAID_DISK_END; i++) {
@@ -257,25 +252,11 @@ int disk_fail_raid1(int diskn) {
   if (raid_data_cache[diskn-1].working == 0) return -1;
 
   // reset working flag for the disk
-  raid_data_cache[diskn-1].working = 0;
+  raid_data_cache[diskn - 1].working = 0;
 
-  // deserialize disk metadata
-  // read metadata for the disk
   uchar buffer[BSIZE];
-  read_block(diskn, 0, buffer);
-
-  struct raid_data metadata;
-  uchar* metadata_ptr = (uchar*)(&metadata);
-
-  for (int i = 0; i < sizeof(struct raid_data); i++)
-    metadata_ptr[i] = buffer[i];
-
-  // reset working flag
-  metadata.working = 0;
-
-  // serialize and write back to the disk
-  for (int i = 0; i < sizeof(struct raid_data); i++)
-    buffer[i] = metadata_ptr[i];
+  uchar* metadata_ptr = (uchar*)(&raid_data_cache[diskn - 1]);
+  serialize(metadata_ptr, sizeof(struct raid_data), buffer);
 
   write_block(diskn, 0, buffer);
 
@@ -351,14 +332,11 @@ int init_raid01() {
   struct raid_data metadata;
   metadata.raid_type = RAID0_1;
   metadata.working = 1;
-  // serialize metadata
 
+  // serialize metadata
   uchar buffer[BSIZE];
   uchar* metadata_ptr = (uchar*)(&metadata);
-  int metadata_size = sizeof(struct raid_data);
-
-  for (int i = 0; i < metadata_size; i++)
-    buffer[i] = metadata_ptr[i];
+  serialize(metadata_ptr, sizeof(struct raid_data), buffer);
 
   // write serialized metadata on every disk in raid and initialize cache
   for (int i = VIRTIO_RAID_DISK_START; i <= VIRTIO_RAID_DISK_END; i++) {
@@ -460,14 +438,8 @@ int disk_fail_raid01(int diskn) {
 
   // write changed raid data to the disk
   uchar* metadata_ptr = (uchar*)(&raid_data_cache[diskn - 1]);
-  int metadata_size = sizeof(struct raid_data);
-
-  metadata_ptr = metadata_ptr;
-  metadata_size = metadata_size;
-
   uchar buffer[BSIZE];
-  for (int i = 0; i < metadata_size; i++)
-    buffer[i] = metadata_ptr[i];
+  serialize(metadata_ptr, sizeof(struct raid_data), buffer);
 
   write_block(diskn, 0, buffer);
   
@@ -497,10 +469,7 @@ int disk_repaired_raid01(int diskn) {
 
   // write updated cache data to corresponding disk
   uchar* metadata_ptr = (uchar*)(&raid_data_cache[diskn - 1]);
-  int metadata_size = sizeof(struct raid_data);
-
-  for (int i = 0; i < metadata_size; i++)
-    buffer[i] = metadata_ptr[i];
+  serialize(metadata_ptr, sizeof(struct raid_data), buffer);
 
   write_block(diskn, 0, buffer);
 
@@ -683,10 +652,7 @@ int disk_fail_raid4(int diskn) {
   // write it to 0th block
   uchar buffer[BSIZE];
   uchar* metadata_ptr = (uchar*)(&raid_data_cache[diskn - 1]);
-  int metadata_size = sizeof(struct raid_data);
-
-  for (int i = 0; i < metadata_size; i++)
-    buffer[i] = metadata_ptr[i];
+  serialize(metadata_ptr, sizeof(struct raid_data), buffer);
 
   write_block(diskn, 0, buffer);
 
