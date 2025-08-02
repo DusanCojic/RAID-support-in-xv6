@@ -745,7 +745,33 @@ int destroy_raid4() {
 // RAID5
 
 int init_raid5() {
-  // To be implemented
+  if (VIRTIO_RAID_DISK_END < 1)
+    return -1;
+
+  // initialize metadata
+  struct raid_data metadata;
+  metadata.raid_type = RAID5;
+  metadata.working = 1;
+
+  // serialize metadata
+  uchar buffer[BSIZE];
+  uchar* metadata_ptr = (uchar*)(&metadata);
+  int metadata_size = sizeof(struct raid_data);
+
+  for (int i = 0; i < metadata_size; i++)
+    buffer[i] = metadata_ptr[i];
+
+  // write in 0th block on every disk
+  for (int diskn = VIRTIO_RAID_DISK_START; diskn <= VIRTIO_RAID_DISK_END; diskn++) {
+    write_block(diskn, 0, buffer);
+
+    // initialize cache entry
+    raid_data_cache[diskn - 1] = metadata;
+  }
+
+  // indicate that the cache is loaded
+  raid_data_cache_loaded = 1;
+
   return 0;
 }
 
