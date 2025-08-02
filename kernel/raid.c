@@ -348,7 +348,7 @@ int init_raid01() {
   metadata.working = 1;
   // serialize metadata
 
-  uchar buffer[BSIZZE];
+  uchar buffer[BSIZE];
   uchar* metadata_ptr = (uchar*)(&metadata);
   int metadata_size = sizeof(struct raid_data);
 
@@ -653,7 +653,47 @@ int disk_fail_raid4(int diskn) {
 }
 
 int disk_repaired_raid4(int diskn) {
-  // To be implemented
+  // diskn out of bounds
+  if (diskn < 1 || diskn > VIRTIO_RAID_DISK_END)
+    return -1;
+
+  uchar buffer[BSIZE];
+  uchar* parity = (uchar*)kalloc();
+  memset(parity, 0, BSIZE);
+
+  for (int blockn = 1; blockn < NUMBER_OF_BLOCKS; blockn++) {
+    // calculate parity for given block number on all disks except one that is being repaired
+    for (int disk_num = VIRTIO_RAID_DISK_START; disk_num < VIRTIO_RAID_DISK_END; disk_num++) {
+      if (disk_num == diskn) continue;
+
+      read_block(disk_num, blockn, buffer);
+
+      for (int i = 0; i < BSIZE; i++)
+        parity[i] ^= buffer[i];
+    }
+
+    // xor with parity
+    read_block(VIRTIO_RAID_DISK_END, blockn, buffer);
+    for (int i = 0; i < BSIZE; i++)
+      parity[i] ^= buffer[i];
+
+    // missing data is now in parity array
+    // write it on repaired disk
+    write_block(diskn, blockn, parity);
+  }
+
+  // indicate that the disk is repaired
+  raid_data_cache[diskn - 1].working = 1;
+
+  // write it
+  uchar* metadata_ptr = (uchar*)(&raid_data_cache[diskn - 1]);
+  int metadata_size = sizeof(struct raid_data);
+
+  for (int i = 0; i < metadata_size; i++)
+    buffer[i] = metadata_ptr[i];
+
+  write_block(diskn, 0, buffer);
+
   return 0;
 }
 
