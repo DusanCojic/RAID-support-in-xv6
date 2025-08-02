@@ -742,12 +742,49 @@ int destroy_raid4() {
 
 
 
+// RAID5
+
+int init_raid5() {
+  // To be implemented
+  return 0;
+}
+
+int read_raid5(int blkn, uchar* data) {
+  // To be implemented
+  return 0;
+}
+
+int write_raid5(int blkn, uchar* data) {
+  // To be implemented
+  return 0;
+}
+
+int disk_fail_raid5(int diskn) {
+  // To be implemented
+  return 0;
+}
+
+int disk_repaired_raid5(int diskn) {
+  // To be implemented
+  return 0;
+}
+
+int destroy_raid5() {
+  // To be implemented
+  return 0;
+}
+
+
+
+
+
 int init_raid(enum RAID_TYPE raid) {
   switch (raid) {
     case RAID0: return init_raid0();
     case RAID1: return init_raid1();
     case RAID0_1: return init_raid01();
     case RAID4: return init_raid4();
+    case RAID5: return init_raid5();
     
     default:
       return -1;
@@ -757,19 +794,19 @@ int init_raid(enum RAID_TYPE raid) {
 }
 
 int read_raid(int blkn, uchar* data) {
-  return read_raid4(blkn, data);
+  return read_raid5(blkn, data);
 }
 
 int write_raid(int blkn, uchar* data) {
-  return write_raid4(blkn, data);
+  return write_raid5(blkn, data);
 }
 
 int disk_fail_raid(int diskn) {
-  return disk_fail_raid4(diskn);
+  return disk_fail_raid5(diskn);
 }
 
 int disk_repaired_raid(int diskn) {
-  return disk_repaired_raid4(diskn);
+  return disk_repaired_raid5(diskn);
 }
 
 int info_raid(uint *blkn, uint *blks, uint *diskn) {
@@ -781,5 +818,5 @@ int info_raid(uint *blkn, uint *blks, uint *diskn) {
 }
 
 int destroy_raid() {
-  return destroy_raid4();
+  return destroy_raid5();
 }
