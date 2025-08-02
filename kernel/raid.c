@@ -663,7 +663,16 @@ int disk_repaired_raid4(int diskn) {
 }
 
 int destroy_raid4() {
-  // To be implemented
+  // write all zeroes in 0th block of the first disk
+  uchar* buffer = (uchar*)kalloc();
+  for (int i = 0; i < BSIZE; i++)
+    buffer[i] = 0;
+
+  raid_data_cache[VIRTIO_RAID_DISK_START - 1].working = 0;
+  write_block(VIRTIO_RAID_DISK_START, 0, buffer);
+
+  kfree(buffer);
+  
   return 0;
 }
 
