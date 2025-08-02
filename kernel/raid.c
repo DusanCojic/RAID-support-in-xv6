@@ -576,13 +576,10 @@ int read_raid4(int blkn, uchar* data) {
   if (raid_data_cache[VIRTIO_RAID_DISK_END - 1].working == 0)
     return -2;
 
-  uchar* parity = (uchar*)kalloc();
-  memset(parity, 0, BSIZE);
+  memset(data, 0, BSIZE);
 
-  recover_missing_block_raid4(blockn, diskn, parity);
-
-  for (int i = 0; i < BSIZE; i++)
-    data[i] = parity[i];
+  int status = recover_missing_block(blockn, diskn, data);
+  if (status != 0) return -2;
 
   return 0;
 }
@@ -695,8 +692,10 @@ int destroy_raid4() {
   for (int i = 0; i < BSIZE; i++)
     buffer[i] = 0;
 
-  raid_data_cache[VIRTIO_RAID_DISK_START - 1].working = 0;
-  write_block(VIRTIO_RAID_DISK_START, 0, buffer);
+  for (int diskn = VIRTIO_RAID_DISK_START; diskn <= VIRTIO_RAID_DISK_END; diskn++) {
+    write_block(diskn, 0, buffer);
+    raid_data_cache[diskn - 1].working = 0;
+  }
   
   return 0;
 }
@@ -762,7 +761,8 @@ int read_raid5(int blkn, uchar* data) {
 
   // recover by calculating parity
   memset(data, 0, BSIZE);
-  recover_missing_block_raid5(blockn, diskn, data);
+  int status = recover_missing_block(blockn, diskn, data);
+  if (status != 0) return -2;
 
   return 0;
 }
@@ -891,19 +891,19 @@ int init_raid(enum RAID_TYPE raid) {
 }
 
 int read_raid(int blkn, uchar* data) {
-  return read_raid5(blkn, data);
+  return read_raid4(blkn, data);
 }
 
 int write_raid(int blkn, uchar* data) {
-  return write_raid5(blkn, data);
+  return write_raid4(blkn, data);
 }
 
 int disk_fail_raid(int diskn) {
-  return disk_fail_raid5(diskn);
+  return disk_fail_raid4(diskn);
 }
 
 int disk_repaired_raid(int diskn) {
-  return disk_repaired_raid5(diskn);
+  return disk_repaired_raid4(diskn);
 }
 
 int info_raid(uint *blkn, uint *blks, uint *diskn) {
@@ -915,5 +915,5 @@ int info_raid(uint *blkn, uint *blks, uint *diskn) {
 }
 
 int destroy_raid() {
-  return destroy_raid5();
+  return destroy_raid4();
 }
