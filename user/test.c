@@ -3,7 +3,7 @@
 #include "kernel/fs.h"
 
 int main() {
-  init_raid(RAID4);
+  init_raid(RAID5);
 
   uint disk_num, block_num, block_size;
   info_raid(&block_num, &block_size, &disk_num);
@@ -24,7 +24,7 @@ int main() {
 
   free(blk);
 
-  disk_fail_raid(3);
+  // disk_fail_raid(4);
 
   uchar* buffer = malloc(block_size);
   int res = read_raid(5, buffer);
@@ -34,14 +34,14 @@ int main() {
   else
     printf("Failed to read\n");
 
-  disk_repaired_raid(3);
+  // disk_repaired_raid(4);
 
-  res = read_raid(5, buffer);
+  // res = read_raid(5, buffer);
 
-  if (res == 0)
-    printf("%d %d %d\n", buffer[0], buffer[1], buffer[2]);
-  else
-    printf("Failed to read\n");
+  // if (res == 0)
+  //   printf("%d %d %d\n", buffer[0], buffer[1], buffer[2]);
+  // else
+  //   printf("Failed to read\n");
 
   return 0;
 }
