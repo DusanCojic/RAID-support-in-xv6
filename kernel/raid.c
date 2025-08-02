@@ -541,12 +541,12 @@ int init_raid4() {
   for (int i = 0; i < metadata_size; i++)
     buffer[i] = metadata_ptr[i];
 
-  // write metadata to 0th block of first and last disk and initialize cache
-  write_block(VIRTIO_RAID_DISK_START, 0, buffer);
-  raid_data_cache[0] = metadata;
+  // write metadata to 0th block of every disk and initialize cache
+  for (int diskn = VIRTIO_RAID_DISK_START; diskn <= VIRTIO_RAID_DISK_END; diskn++) {
+    write_block(diskn, 0, buffer);
 
-  write_block(VIRTIO_RAID_DISK_END, 0, buffer);
-  raid_data_cache[VIRTIO_RAID_DISK_END - 1] = metadata;
+    raid_data_cache[diskn - 1] = metadata;
+  }
 
   // indicate that the cache is loaded
   raid_data_cache_loaded = 1;
@@ -561,17 +561,17 @@ int read_raid4(int blkn, uchar* data) {
 
   load_raid_data_cache();
 
-  // disk with requested block is not working
-  if (raid_data_cache[VIRTIO_RAID_DISK_START - 1].working == 0)
-    return -2;
-
   // calculate disk and block to write data
   int data_disks = VIRTIO_RAID_DISK_END - 1;
   int diskn = blkn % data_disks + 1;
   int blockn = blkn / data_disks;
 
+  // disk with requested block is not working
+  if (raid_data_cache[diskn - 1].working == 0)
+    return -2;
+
   // block number outside of the range
-  if (blockn > NUMBER_OF_BLOCKS - 1)
+  if (blockn < 1 || blockn > NUMBER_OF_BLOCKS - 1)
     return -1;
 
   read_block(diskn, blockn, data);
@@ -586,17 +586,17 @@ int write_raid4(int blkn, uchar* data) {
 
   load_raid_data_cache();
 
-  // disk with the requested block is not working
-  if (raid_data_cache[VIRTIO_RAID_DISK_START - 1].working == 0)
-    return -2;
-
   // calculate disk and block to write data
   int data_disks = VIRTIO_RAID_DISK_END - 1;
   int diskn = blkn % data_disks + 1;
   int blockn = blkn / data_disks;
 
+  // disk with the requested block is not working
+  if (raid_data_cache[diskn - 1].working == 0)
+    return -2;
+
   // block number outside of the range
-  if (blockn > NUMBER_OF_BLOCKS - 1)
+  if (blockn < 1 || blockn > NUMBER_OF_BLOCKS - 1)
     return -1;
   
   write_block(diskn, blockn, data);
@@ -636,7 +636,18 @@ int disk_fail_raid4(int diskn) {
   if (diskn < 1 || diskn > VIRTIO_RAID_DISK_END)
     return -1;
 
-  
+  // indicate that the disk is not working
+  raid_data_cache[diskn - 1].working = 0;
+
+  // write it to 0th block
+  uchar buffer[BSIZE];
+  uchar* metadata_ptr = (uchar*)(&raid_data_cache[diskn - 1]);
+  int metadata_size = sizeof(struct raid_data);
+
+  for (int i = 0; i < metadata_size; i++)
+    buffer[i] = metadata_ptr[i];
+
+  write_block(diskn, 0, buffer);
 
   return 0;
 }
