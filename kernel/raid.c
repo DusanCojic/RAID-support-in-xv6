@@ -35,6 +35,11 @@ void load_raid_data_cache() {
   }
 }
 
+void serialize(uchar* data, int size, uchar* buffer) {
+  for (int i = 0; i < size; i++)
+    buffer[i] = data[i];
+}
+
 
 
 
@@ -670,6 +675,8 @@ int disk_fail_raid4(int diskn) {
   if (diskn < 1 || diskn > VIRTIO_RAID_DISK_END)
     return -1;
 
+  load_raid_data_cache();
+
   // indicate that the disk is not working
   raid_data_cache[diskn - 1].working = 0;
 
@@ -798,6 +805,12 @@ int read_raid5(int blkn, uchar* data) {
   diskn = (diskn >= parity_location) ? diskn + 1 : diskn;
   int blockn = stripe;
 
+  // cannot write in 0th block on any disk
+  if (blockn == 0)
+    return -1;
+
+  load_raid_data_cache();
+
   // if disk is working, just read the block
   if (raid_data_cache[diskn - 1].working == 1) {
     read_block(diskn, blockn, data);
@@ -821,6 +834,10 @@ int write_raid5(int blkn, uchar* data) {
   diskn = (diskn >= parity_location) ? diskn + 1 : diskn;
   int blockn = stripe;
 
+  // cannot write in 0th block on any disk
+  if (blockn == 0)
+    return -1;
+
   // calculate parity using read-modify-write method
   uchar buffer[BSIZE];
   uchar* parity = (uchar*)kalloc();
@@ -842,7 +859,22 @@ int write_raid5(int blkn, uchar* data) {
 }
 
 int disk_fail_raid5(int diskn) {
-  // To be implemented
+  // diskn out of bounds
+  if (diskn < 1 || diskn > VIRTIO_RAID_DISK_END)
+    return -1;
+
+  load_raid_data_cache();
+
+  // mark disk as not working
+  raid_data_cache[diskn - 1].working = 0;
+
+  // write update on disk
+  uchar buffer[BSIZE];
+  uchar* metadata_ptr = (uchar*)(&raid_data_cache[diskn - 1]);
+  serialize(metadata_ptr, sizeof(struct raid_data), buffer);
+
+  write_block(diskn, 0, buffer);
+
   return 0;
 }
 
