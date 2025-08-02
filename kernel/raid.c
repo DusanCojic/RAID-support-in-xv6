@@ -559,7 +559,7 @@ void calculate_parity(uchar* data, uchar* parity) {
     parity[i] ^= data[i];
 }
 
-void recover_missing_block(int blockn, int disk_to_skip, uchar* data) {
+void recover_missing_block_raid4(int blockn, int disk_to_skip, uchar* data) {
   uchar buffer[BSIZE];
   for (int diskn = VIRTIO_RAID_DISK_START; diskn < VIRTIO_RAID_DISK_END; diskn++) {
     if (diskn == disk_to_skip) continue;
@@ -604,7 +604,7 @@ int read_raid4(int blkn, uchar* data) {
   uchar* parity = (uchar*)kalloc();
   memset(parity, 0, BSIZE);
 
-  recover_missing_block(blockn, diskn, parity);
+  recover_missing_block_raid4(blockn, diskn, parity);
 
   for (int i = 0; i < BSIZE; i++)
     data[i] = parity[i];
@@ -701,7 +701,7 @@ int disk_repaired_raid4(int diskn) {
 
   for (int blockn = 1; blockn < NUMBER_OF_BLOCKS; blockn++) {
     // calculate parity for given block number on all disks except one that is being repaired
-    recover_missing_block(blockn, diskn, parity);
+    recover_missing_block_raid4(blockn, diskn, parity);
 
     // missing data is now in parity array
     // write it on repaired disk
@@ -781,7 +781,29 @@ int read_raid5(int blkn, uchar* data) {
 }
 
 int write_raid5(int blkn, uchar* data) {
-  // To be implemented
+  int number_of_disks = VIRTIO_RAID_DISK_END;
+
+  // calculate disk and block number
+  int stripe = blkn / (number_of_disks - 1);
+  int parity_location = stripe % number_of_disks + 1;
+  int diskn = blkn % (number_of_disks - 1) + 1;
+  diskn = (diskn >= parity_location) ? diskn + 1 : diskn;
+  int blockn = stripe;
+
+  // calculate parity using read-modify-write method
+  uchar buffer[BSIZE];
+  uchar* parity = (uchar*)kalloc();
+  memset(parity, 0, BSIZE);
+
+  read_block(parity_location, blockn, parity);
+  read_block(diskn, blockn, buffer);
+
+  calculate_parity(buffer, parity); // exclude old data from parity
+  calculate_parity(data, parity); // add new data to parity
+
+  write_block(diskn, blockn, data); // write data
+  write_block(parity_location, blockn, parity); // write parity
+
   return 0;
 }
 
