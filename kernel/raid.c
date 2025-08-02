@@ -606,33 +606,21 @@ int write_raid4(int blkn, uchar* data) {
   // block number outside of the range
   if (blockn < 1 || blockn > NUMBER_OF_BLOCKS - 1)
     return -1;
-  
-  write_block(diskn, blockn, data);
 
   if (raid_data_cache[VIRTIO_RAID_DISK_END - 1].working == 0)
     return 0;
 
   uchar buffer[BSIZE];
-
-  // allocate one page for parity array (stack not large enough)
   uchar* parity = (uchar*)kalloc();
-  memset(parity, 0, BSIZE);
+  
+  read_block(diskn, blockn, buffer); // read old data
+  read_block(VIRTIO_RAID_DISK_END, blockn, parity); // read old parity
 
-  // /calculate parity
-  for (int i = VIRTIO_RAID_DISK_START; i < VIRTIO_RAID_DISK_END; i++) {
-    // not need to read current data
-    if (i == diskn) continue;
+  calculate_parity(buffer, parity); // exclude old data from parity
+  calculate_parity(data, parity); // add new data to parity
 
-    read_block(i, blockn, buffer);
-
-    calculate_parity(buffer, parity);
-  }
-
-  // add current data to the parity
-  calculate_parity(data, parity);
-
-  // write parity to the parity disk
-  write_block(VIRTIO_RAID_DISK_END, blockn, parity);
+  write_block(diskn, blockn, data); // write new data
+  write_block(VIRTIO_RAID_DISK_END, blockn, parity); // write new parity
 
   // free alocated memory
   kfree(parity);
@@ -855,6 +843,13 @@ int disk_repaired_raid5(int diskn) {
     write_block(diskn, blockn, parity);
     memset(parity, 0, BSIZE);
   }
+
+  // update cache and 0th block on disk
+  raid_data_cache[diskn - 1].working = 1;
+  uchar* metadata_ptr = (uchar*)(&raid_data_cache[diskn - 1]);
+  serialize(metadata_ptr, sizeof(struct raid_data), buffer);
+
+  write_block(diskn, 0, buffer);
 
   // free allocated memory
   kfree(parity);
