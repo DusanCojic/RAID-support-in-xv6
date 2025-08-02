@@ -83,6 +83,10 @@ int read_raid0(int blkn, uchar* data) {
   int blockn = blkn / num_of_disks;
   if (diskn == 1 && blockn == 0) return -2; // cannot access 0th block on the first disk
 
+  // block number outside of the range
+  if (blockn > NUMBER_OF_BLOCKS - 1)
+    return -1;
+
   // write block from the calculated disk in the calculated block
   read_block(diskn, blockn, data);
 
@@ -107,6 +111,10 @@ int write_raid0(int blkn, uchar* data) {
   // calculate block number on the disk
   int blockn = blkn / num_of_disks;
   if (diskn == 1) blockn++;
+
+  // block number outside of the range
+  if (blockn > NUMBER_OF_BLOCKS - 1)
+    return -1;
 
   // write block on the calculated disk in the calculated block
   write_block(diskn, blockn, data);
@@ -144,12 +152,14 @@ int disk_repaired_raid0(int diskn) {
 
 int destroy_raid0() {
   // write all zeores in the first block of the first disk
-  uchar buffer[BSIZE];
+  uchar* buffer = (uchar*)kalloc();
 
   for (int i = 0; i < BSIZE; i++)
     buffer[i] = 0;
 
   write_block(1, 0, buffer);
+
+  kfree(buffer);
 
   return 0;
 }
@@ -580,6 +590,10 @@ int read_raid4(int blkn, uchar* data) {
   int diskn = blkn % data_disks + 1;
   int blockn = blkn / data_disks;
 
+  // block number outside of the range
+  if (blockn > NUMBER_OF_BLOCKS - 1)
+    return -1;
+
   read_block(diskn, blockn, data);
 
   return 0;
@@ -600,6 +614,10 @@ int write_raid4(int blkn, uchar* data) {
   int data_disks = VIRTIO_RAID_DISK_END - 1;
   int diskn = blkn % data_disks + 1;
   int blockn = blkn / data_disks;
+
+  // block number outside of the range
+  if (blockn > NUMBER_OF_BLOCKS - 1)
+    return -1;
   
   write_block(diskn, blockn, data);
 
@@ -668,23 +686,23 @@ int init_raid(enum RAID_TYPE raid) {
 }
 
 int read_raid(int blkn, uchar* data) {
-  return read_raid01(blkn, data);
+  return read_raid4(blkn, data);
 }
 
 int write_raid(int blkn, uchar* data) {
-  return write_raid01(blkn, data);
+  return write_raid4(blkn, data);
 }
 
 int disk_fail_raid(int diskn) {
-  return disk_fail_raid01(diskn);
+  return disk_fail_raid4(diskn);
 }
 
 int disk_repaired_raid(int diskn) {
-  return disk_repaired_raid01(diskn);
+  return disk_repaired_raid4(diskn);
 }
 
 int info_raid(uint *blkn, uint *blks, uint *diskn) {
-  (*blkn) = NUMBER_OF_BLOCKS - 1;
+  (*blkn) = NUMBER_OF_BLOCKS;
   (*blks) = BSIZE;
   (*diskn) = VIRTIO_RAID_DISK_END;
 

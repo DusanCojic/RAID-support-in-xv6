@@ -3,7 +3,7 @@
 #include "kernel/fs.h"
 
 int main() {
-  init_raid(RAID0_1);
+  init_raid(RAID4);
 
   uint disk_num, block_num, block_size;
   info_raid(&block_num, &block_size, &disk_num);
