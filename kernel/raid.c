@@ -775,8 +775,39 @@ int init_raid5() {
   return 0;
 }
 
+void recover_missing_block_raid5(int blockn, int disk_to_skip, uchar* parity) {
+  uchar buffer[BSIZE];
+  for (int diskn = VIRTIO_RAID_DISK_START; diskn <= VIRTIO_RAID_DISK_END; diskn++) {
+    // skip disk that's not working
+    if (diskn == disk_to_skip) continue;
+    
+    read_block(diskn, blockn, buffer);
+
+    // calculate parity
+    calculate_parity(buffer, parity);
+  }
+}
+
 int read_raid5(int blkn, uchar* data) {
-  // To be implemented
+  int number_of_disks = VIRTIO_RAID_DISK_END;
+
+  // calculate disk and block number
+  int stripe = blkn / (number_of_disks - 1);
+  int parity_location = stripe % number_of_disks + 1;
+  int diskn = blkn % (number_of_disks - 1) + 1;
+  diskn = (diskn >= parity_location) ? diskn + 1 : diskn;
+  int blockn = stripe;
+
+  // if disk is working, just read the block
+  if (raid_data_cache[diskn - 1].working == 1) {
+    read_block(diskn, blockn, data);
+    return 0;
+  }
+
+  // recover by calculating parity
+  memset(data, 0, BSIZE);
+  recover_missing_block_raid5(blockn, diskn, data);
+
   return 0;
 }
 
@@ -803,6 +834,9 @@ int write_raid5(int blkn, uchar* data) {
 
   write_block(diskn, blockn, data); // write data
   write_block(parity_location, blockn, parity); // write parity
+
+  // free allocated memory
+  kfree(parity);
 
   return 0;
 }
