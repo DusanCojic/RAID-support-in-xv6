@@ -863,7 +863,16 @@ int disk_repaired_raid5(int diskn) {
 }
 
 int destroy_raid5() {
-  // To be implemented
+  uchar buffer[BSIZE];
+
+  for (int i = 0; i < BSIZE; i++)
+    buffer[i] = 0;
+
+  for (int diskn = VIRTIO_RAID_DISK_START; diskn <= VIRTIO_RAID_DISK_END; diskn++) {
+    write_block(diskn, 0, buffer);
+    raid_data_cache[diskn - 1].working = 0;
+  }
+
   return 0;
 }
 
