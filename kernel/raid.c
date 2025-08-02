@@ -554,6 +554,26 @@ int init_raid4() {
   return 0;
 }
 
+void calculate_parity(uchar* data, uchar* parity) {
+  for (int i = 0; i < BSIZE; i++)
+    parity[i] ^= data[i];
+}
+
+void recover_missing_block(int blockn, int disk_to_skip, uchar* data) {
+  uchar buffer[BSIZE];
+  for (int diskn = VIRTIO_RAID_DISK_START; diskn < VIRTIO_RAID_DISK_END; diskn++) {
+    if (diskn == disk_to_skip) continue;
+
+    read_block(diskn, blockn, buffer);
+
+    calculate_parity(buffer, data);
+  }
+
+  // add data from parity disk
+  read_block(VIRTIO_RAID_DISK_END, blockn, buffer);
+  calculate_parity(buffer, data);
+}
+
 int read_raid4(int blkn, uchar* data) {
   // cannot read the 0th block (raid data structure)
   if (blkn == 0)
@@ -566,15 +586,28 @@ int read_raid4(int blkn, uchar* data) {
   int diskn = blkn % data_disks + 1;
   int blockn = blkn / data_disks;
 
-  // disk with requested block is not working
-  if (raid_data_cache[diskn - 1].working == 0)
-    return -2;
-
   // block number outside of the range
   if (blockn < 1 || blockn > NUMBER_OF_BLOCKS - 1)
     return -1;
 
-  read_block(diskn, blockn, data);
+  // disk with requested block is working
+  if (raid_data_cache[diskn - 1].working == 1) {
+    read_block(diskn, blockn, data);
+    return 0;
+  }
+
+  // disk with requested block is not working (recovering data, if possible)
+  // parity disk is not working
+  if (raid_data_cache[VIRTIO_RAID_DISK_END - 1].working == 0)
+    return -2;
+
+  uchar* parity = (uchar*)kalloc();
+  memset(parity, 0, BSIZE);
+
+  recover_missing_block(blockn, diskn, parity);
+
+  for (int i = 0; i < BSIZE; i++)
+    data[i] = parity[i];
 
   return 0;
 }
@@ -601,6 +634,9 @@ int write_raid4(int blkn, uchar* data) {
   
   write_block(diskn, blockn, data);
 
+  if (raid_data_cache[VIRTIO_RAID_DISK_END - 1].working == 0)
+    return 0;
+
   uchar buffer[BSIZE];
 
   // allocate one page for parity array (stack not large enough)
@@ -614,13 +650,11 @@ int write_raid4(int blkn, uchar* data) {
 
     read_block(i, blockn, buffer);
 
-    for (int j = 0; j < BSIZE; j++)
-      parity[j] ^= buffer[j];
+    calculate_parity(buffer, parity);
   }
 
   // add current data to the parity
-  for (int j = 0; j < BSIZE; j++)
-    parity[j] ^= data[j];
+  calculate_parity(data, parity);
 
   // write parity to the parity disk
   write_block(VIRTIO_RAID_DISK_END, blockn, parity);
@@ -657,29 +691,24 @@ int disk_repaired_raid4(int diskn) {
   if (diskn < 1 || diskn > VIRTIO_RAID_DISK_END)
     return -1;
 
+  // parity disk is not working
+  if (raid_data_cache[VIRTIO_RAID_DISK_END - 1].working == 0)
+    return -2;
+
   uchar buffer[BSIZE];
   uchar* parity = (uchar*)kalloc();
   memset(parity, 0, BSIZE);
 
   for (int blockn = 1; blockn < NUMBER_OF_BLOCKS; blockn++) {
     // calculate parity for given block number on all disks except one that is being repaired
-    for (int disk_num = VIRTIO_RAID_DISK_START; disk_num < VIRTIO_RAID_DISK_END; disk_num++) {
-      if (disk_num == diskn) continue;
-
-      read_block(disk_num, blockn, buffer);
-
-      for (int i = 0; i < BSIZE; i++)
-        parity[i] ^= buffer[i];
-    }
-
-    // xor with parity
-    read_block(VIRTIO_RAID_DISK_END, blockn, buffer);
-    for (int i = 0; i < BSIZE; i++)
-      parity[i] ^= buffer[i];
+    recover_missing_block(blockn, diskn, parity);
 
     // missing data is now in parity array
     // write it on repaired disk
     write_block(diskn, blockn, parity);
+
+    // reset parity
+    memset(parity, 0, BSIZE);
   }
 
   // indicate that the disk is repaired
