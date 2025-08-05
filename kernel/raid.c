@@ -1066,16 +1066,20 @@ int destroy_raid() {
   enum RAID_TYPE raid_type = check_raid();
   if (raid_type == RAID_NONE) return -1;
 
-  switch (raid_type) {
-    case RAID0: return destroy_raid0();
-    case RAID1: return destroy_raid1();
-    case RAID0_1: return destroy_raid01();
-    case RAID4: return destroy_raid4();
-    case RAID5: return destroy_raid5();
+  int ret = -1;
 
-    default:
-      return -1;
+  switch (raid_type) {
+    case RAID0: ret = destroy_raid0(); break;
+    case RAID1: ret = destroy_raid1(); break;
+    case RAID0_1: ret = destroy_raid01(); break;
+    case RAID4: ret = destroy_raid4(); break;
+    case RAID5: ret = destroy_raid5(); break;
+    
+    default: break;
   }
 
-  return -1;
+  raid.raid_type = RAID_NONE;
+  raid.working = -1;
+
+  return ret;
 }
