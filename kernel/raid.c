@@ -150,6 +150,14 @@ int disk_repaired_raid0(int diskn) {
   return -1;
 }
 
+int info_raid0(uint *blkn, uint *blks, uint *diskn) {
+  *blkn = (VIRTIO_RAID_DISK_END * NUMBER_OF_BLOCKS) - 1;
+  *blks = BSIZE;
+  *diskn = VIRTIO_RAID_DISK_END;
+
+  return 0;
+}
+
 int destroy_raid0() {
   // write all zeores in the first block of the first disk
   uchar buffer[BSIZE];
@@ -297,6 +305,14 @@ int disk_repaired_raid1(int diskn) {
   // write updated cache to the corresponding disk
   uchar* metadata_ptr = (uchar*)(&raid_data_cache[diskn - 1]);
   write_block(diskn, 0, metadata_ptr);
+
+  return 0;
+}
+
+int info_raid1(uint *blkn, uint *blks, uint *diskn) {
+  *blkn = NUMBER_OF_BLOCKS - 1;
+  *blks = BSIZE;
+  *diskn = VIRTIO_RAID_DISK_END;
 
   return 0;
 }
@@ -473,6 +489,14 @@ int disk_repaired_raid01(int diskn) {
   serialize(metadata_ptr, sizeof(struct raid_data), buffer);
 
   write_block(diskn, 0, buffer);
+
+  return 0;
+}
+
+int info_raid01(uint *blkn, uint *blks, uint *diskn) {
+  *blkn = (VIRTIO_RAID_DISK_END >> 1) * (NUMBER_OF_BLOCKS - 1);
+  *blks = BSIZE;
+  *diskn = VIRTIO_RAID_DISK_END;
 
   return 0;
 }
@@ -687,6 +711,14 @@ int disk_repaired_raid4(int diskn) {
   return 0;
 }
 
+int info_raid4(uint *blkn, uint *blks, uint *diskn) {
+  *blkn = (VIRTIO_RAID_DISK_END - 1) * (NUMBER_OF_BLOCKS - 1);
+  *blks = BSIZE;
+  *diskn = VIRTIO_RAID_DISK_END;
+
+  return 0;
+}
+
 int destroy_raid4() {
   // write all zeroes in 0th block of the first disk
   uchar buffer[BSIZE];
@@ -858,6 +890,14 @@ int disk_repaired_raid5(int diskn) {
   return 0;
 }
 
+int info_raid5(uint *blkn, uint *blks, uint *diskn) {
+  *blkn = (VIRTIO_RAID_DISK_END - 1) * (NUMBER_OF_BLOCKS - 1);
+  *blks = BSIZE;
+  *diskn = VIRTIO_RAID_DISK_END;
+
+  return 0;
+}
+
 int destroy_raid5() {
   uchar buffer[BSIZE];
 
@@ -900,45 +940,142 @@ enum RAID_TYPE check_raid() {
   return raid.raid_type;
 }
 
-int init_raid(enum RAID_TYPE raid) {
-  switch (raid) {
-    case RAID0: return init_raid0();
-    case RAID1: return init_raid1();
-    case RAID0_1: return init_raid01();
-    case RAID4: return init_raid4();
-    case RAID5: return init_raid5();
+int init_raid(enum RAID_TYPE raid_type) {
+  int ret = -1;
+
+  switch (raid_type) {
+    case RAID0: ret = init_raid0(); break;
+    case RAID1: ret =  init_raid1(); break;
+    case RAID0_1: ret = init_raid01(); break;
+    case RAID4: ret = init_raid4(); break;
+    case RAID5: ret = init_raid5(); break;
     
     default:
       return -1;
   }
 
-  return 0;
+  if (ret == 0) {
+    raid.raid_type = raid_type;
+    raid.working = 1;
+  }
+  else {
+    raid.raid_type = RAID_NONE;
+    raid.working = -1;
+  }
+
+  return ret;
 }
 
 int read_raid(int blkn, uchar* data) {
-  return read_raid4(blkn, data);
+  // check for raid
+  enum RAID_TYPE raid_type = check_raid();
+  if (raid_type == RAID_NONE) return -1;
+
+  switch (raid_type) {
+    case RAID0: return read_raid0(blkn, data);
+    case RAID1: return read_raid1(blkn, data);
+    case RAID0_1: return read_raid01(blkn, data);
+    case RAID4: return read_raid4(blkn, data);
+    case RAID5: return read_raid5(blkn, data);
+    
+    default:
+      return -1;
+  }
+
+  return -1;
 }
 
 int write_raid(int blkn, uchar* data) {
-  return write_raid4(blkn, data);
+  // check for raid
+  enum RAID_TYPE raid_type = check_raid();
+  if (raid_type == RAID_NONE) return -1;
+
+  switch (raid_type) {
+    case RAID0: return write_raid0(blkn, data);
+    case RAID1: return write_raid1(blkn, data);
+    case RAID0_1: return write_raid01(blkn, data);
+    case RAID4: return write_raid4(blkn, data);
+    case RAID5: return write_raid5(blkn, data);
+
+    default:
+      return -1;
+  }
+
+  return -1;
 }
 
 int disk_fail_raid(int diskn) {
-  return disk_fail_raid4(diskn);
+  // check for raid
+  enum RAID_TYPE raid_type = check_raid();
+  if (raid_type == RAID_NONE) return -1;
+
+  switch (raid_type) {
+    case RAID0: return disk_fail_raid0(diskn);
+    case RAID1: return disk_fail_raid1(diskn);
+    case RAID0_1: return disk_fail_raid01(diskn);
+    case RAID4: return disk_fail_raid4(diskn);
+    case RAID5: return disk_fail_raid5(diskn);
+    
+    default:
+      return -1;
+  }
+
+  return -1;
 }
 
 int disk_repaired_raid(int diskn) {
-  return disk_repaired_raid4(diskn);
+  // check for raid
+  enum RAID_TYPE raid_type = check_raid();
+  if (raid_type == RAID_NONE) return -1;
+
+  switch (raid_type) {
+    case RAID0: return disk_repaired_raid0(diskn);
+    case RAID1: return disk_repaired_raid1(diskn);
+    case RAID0_1: return disk_repaired_raid01(diskn);
+    case RAID4: return disk_repaired_raid4(diskn);
+    case RAID5: return disk_repaired_raid5(diskn);
+
+    default:
+      return -1;
+  }
+
+  return -1;
 }
 
 int info_raid(uint *blkn, uint *blks, uint *diskn) {
-  (*blkn) = NUMBER_OF_BLOCKS;
-  (*blks) = BSIZE;
-  (*diskn) = VIRTIO_RAID_DISK_END;
+  // check for raid
+  enum RAID_TYPE raid_type = check_raid();
+  if (raid_type == RAID_NONE) return -1;
 
-  return 0;
+  switch (raid_type) {
+    case RAID0: return info_raid0(blkn, blks, diskn);
+    case RAID1: return info_raid1(blkn, blks, diskn);
+    case RAID0_1: return info_raid01(blkn, blks, diskn);
+    case RAID4: return info_raid4(blkn, blks, diskn);
+    case RAID5: return info_raid5(blkn, blks, diskn);
+    
+    default:
+      return -1;
+  }
+
+  return 1;
 }
 
 int destroy_raid() {
-  return destroy_raid4();
+  // check for raid
+  enum RAID_TYPE raid_type = check_raid();
+  if (raid_type == RAID_NONE) return -1;
+
+  switch (raid_type) {
+    case RAID0: return destroy_raid0();
+    case RAID1: return destroy_raid1();
+    case RAID0_1: return destroy_raid01();
+    case RAID4: return destroy_raid4();
+    case RAID5: return destroy_raid5();
+
+    default:
+      return -1;
+  }
+
+  return -1;
 }
