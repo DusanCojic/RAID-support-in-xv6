@@ -10,7 +10,8 @@
 // raid data structure
 struct raid_data {
   enum RAID_TYPE raid_type;
-  uchar working;
+  uchar working; // if used in specific raid functions, indicates that disk is working/not working 
+                // if used in global raid functions, indicates that raid exists(1), not exist(-1) and not sure(0)
 };
 
 struct raid_data raid_data_cache[VIRTIO_RAID_DISK_END];
@@ -874,6 +875,30 @@ int destroy_raid5() {
 
 
 
+
+struct raid_data raid = {RAID_NONE, 0}; // working: 1 - raid exists, -1 - not exits, 0 - not sure
+
+enum RAID_TYPE check_raid() {
+  if (raid.working == 1 || raid.working == -1)
+    return raid.raid_type;
+  
+  // check 0th block of the first disk
+  uchar buffer[BSIZE];
+  uchar* raid_ptr = (uchar*)(&raid);
+
+  read_block(1, 0, buffer);
+  deserialize(raid_ptr, sizeof(struct raid_data), buffer);
+
+  if (raid.raid_type == RAID0 || raid.raid_type == RAID1 || raid.raid_type == RAID0_1 || raid.raid_type == RAID4 || raid.raid_type == RAID5) {
+    raid.working = 1;
+  }
+  else {
+    raid.raid_type = RAID_NONE;
+    raid.working = -1;
+  }
+
+  return raid.raid_type;
+}
 
 int init_raid(enum RAID_TYPE raid) {
   switch (raid) {

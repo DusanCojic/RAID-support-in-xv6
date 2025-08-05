@@ -1,6 +1,6 @@
 #include "types.h"
 
-enum RAID_TYPE {RAID0, RAID1, RAID0_1, RAID4, RAID5};
+enum RAID_TYPE {RAID_NONE = 0, RAID0, RAID1, RAID0_1, RAID4, RAID5};
 int init_raid(enum RAID_TYPE raid);
 int read_raid(int blkn, uchar* data);
 int write_raid(int blkn, uchar* data);
