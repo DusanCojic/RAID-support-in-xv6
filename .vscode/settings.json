@@ -3,6 +3,7 @@
         "types.h": "c",
         "fs.h": "c",
         "user.h": "c",
-        "cstdlib": "c"
+        "cstdlib": "c",
+        "type_traits": "c"
     }
 }

@@ -902,18 +902,18 @@ int destroy_raid5() {
 struct sleeplock raid_lock;
 
 // function to initialize sleeplock
-inline void init_sleeplock() {
+void init_sleeplock() {
   initsleeplock(&raid_lock, "raid_lock");
 }
 
 // function to acquire sleeplock
-inline void lock() {
+void lock() {
   acquiresleep(&raid_lock);
 }
 
 // function to release sleeplock
-inline void unlock() {
-  init_sleeplock();
+void unlock() {
+  releasesleep(&raid_lock);
 }
 
 struct raid_data raid = {RAID_NONE, 0}; // working: 1 - raid exists, -1 - not exits, 0 - not sure
@@ -977,13 +977,14 @@ int read_raid(int blkn, uchar* data) {
   // check for raid
   enum RAID_TYPE raid_type = check_raid();
   if (raid_type == RAID_NONE) return -1;
-
+  
+  int ret = -1;
   switch (raid_type) {
-    case RAID0: return read_raid0(blkn, data);
-    case RAID1: return read_raid1(blkn, data);
-    case RAID0_1: return read_raid01(blkn, data);
-    case RAID4: return read_raid4(blkn, data);
-    case RAID5: return read_raid5(blkn, data);
+    case RAID0: ret = read_raid0(blkn, data); break;
+    case RAID1: ret = read_raid1(blkn, data); break;
+    case RAID0_1: ret = read_raid01(blkn, data); break;
+    case RAID4: ret = read_raid4(blkn, data); break;
+    case RAID5: ret = read_raid5(blkn, data); break;
     
     default:
       break;
@@ -991,7 +992,7 @@ int read_raid(int blkn, uchar* data) {
 
   unlock();
 
-  return -1;
+  return ret;
 }
 
 int write_raid(int blkn, uchar* data) {
@@ -1001,12 +1002,13 @@ int write_raid(int blkn, uchar* data) {
   enum RAID_TYPE raid_type = check_raid();
   if (raid_type == RAID_NONE) return -1;
 
+  int ret = -1;
   switch (raid_type) {
-    case RAID0: return write_raid0(blkn, data);
-    case RAID1: return write_raid1(blkn, data);
-    case RAID0_1: return write_raid01(blkn, data);
-    case RAID4: return write_raid4(blkn, data);
-    case RAID5: return write_raid5(blkn, data);
+    case RAID0: ret = write_raid0(blkn, data); break;
+    case RAID1: ret = write_raid1(blkn, data); break;
+    case RAID0_1: ret = write_raid01(blkn, data); break;
+    case RAID4: ret = write_raid4(blkn, data); break;
+    case RAID5: ret = write_raid5(blkn, data); break;
 
     default:
       break;
@@ -1014,7 +1016,7 @@ int write_raid(int blkn, uchar* data) {
 
   unlock();
 
-  return -1;
+  return ret;
 }
 
 int disk_fail_raid(int diskn) {
@@ -1024,12 +1026,13 @@ int disk_fail_raid(int diskn) {
   enum RAID_TYPE raid_type = check_raid();
   if (raid_type == RAID_NONE) return -1;
 
+  int ret = -1;
   switch (raid_type) {
-    case RAID0: return disk_fail_raid0(diskn);
-    case RAID1: return disk_fail_raid1(diskn);
-    case RAID0_1: return disk_fail_raid01(diskn);
-    case RAID4: return disk_fail_raid4(diskn);
-    case RAID5: return disk_fail_raid5(diskn);
+    case RAID0: ret = disk_fail_raid0(diskn); break;
+    case RAID1: ret = disk_fail_raid1(diskn); break;
+    case RAID0_1: ret = disk_fail_raid01(diskn); break;
+    case RAID4: ret = disk_fail_raid4(diskn); break;
+    case RAID5: ret = disk_fail_raid5(diskn); break;
     
     default:
       break;
@@ -1037,7 +1040,7 @@ int disk_fail_raid(int diskn) {
 
   unlock();
 
-  return -1;
+  return ret;
 }
 
 int disk_repaired_raid(int diskn) {
@@ -1047,12 +1050,13 @@ int disk_repaired_raid(int diskn) {
   enum RAID_TYPE raid_type = check_raid();
   if (raid_type == RAID_NONE) return -1;
 
+  int ret = -1;
   switch (raid_type) {
-    case RAID0: return disk_repaired_raid0(diskn);
-    case RAID1: return disk_repaired_raid1(diskn);
-    case RAID0_1: return disk_repaired_raid01(diskn);
-    case RAID4: return disk_repaired_raid4(diskn);
-    case RAID5: return disk_repaired_raid5(diskn);
+    case RAID0: ret = disk_repaired_raid0(diskn); break;
+    case RAID1: ret = disk_repaired_raid1(diskn); break;
+    case RAID0_1: ret = disk_repaired_raid01(diskn); break;
+    case RAID4: ret = disk_repaired_raid4(diskn); break;
+    case RAID5: ret = disk_repaired_raid5(diskn); break;
 
     default:
       break;
@@ -1060,7 +1064,7 @@ int disk_repaired_raid(int diskn) {
 
   unlock();
 
-  return -1;
+  return ret;
 }
 
 int info_raid(uint *blkn, uint *blks, uint *diskn) {
@@ -1070,12 +1074,13 @@ int info_raid(uint *blkn, uint *blks, uint *diskn) {
   enum RAID_TYPE raid_type = check_raid();
   if (raid_type == RAID_NONE) return -1;
 
+  int ret = -1;
   switch (raid_type) {
-    case RAID0: return info_raid0(blkn, blks, diskn);
-    case RAID1: return info_raid1(blkn, blks, diskn);
-    case RAID0_1: return info_raid01(blkn, blks, diskn);
-    case RAID4: return info_raid4(blkn, blks, diskn);
-    case RAID5: return info_raid5(blkn, blks, diskn);
+    case RAID0: ret = info_raid0(blkn, blks, diskn); break;
+    case RAID1: ret = info_raid1(blkn, blks, diskn); break;
+    case RAID0_1: ret = info_raid01(blkn, blks, diskn); break;
+    case RAID4: ret = info_raid4(blkn, blks, diskn); break;
+    case RAID5: ret = info_raid5(blkn, blks, diskn); break;
     
     default:
       break;
@@ -1083,7 +1088,7 @@ int info_raid(uint *blkn, uint *blks, uint *diskn) {
 
   unlock();
 
-  return 1;
+  return ret;
 }
 
 int destroy_raid() {

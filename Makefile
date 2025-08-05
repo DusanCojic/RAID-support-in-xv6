@@ -156,6 +156,7 @@ UPROGS=\
 	$U/_maxout_vm\
 	$U/_javni_test\
 	$U/_test\
+	$U/_test_fork\
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)
