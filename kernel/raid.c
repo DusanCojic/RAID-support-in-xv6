@@ -840,6 +840,10 @@ int disk_repaired_raid5(int diskn) {
 
   load_raid_data_cache();
 
+  // don't need to repair working disk
+  if (raid_data_cache[diskn - 1].working == 1)
+    return 0;
+
   uchar buffer[BSIZE];
   uchar* parity = (uchar*)kalloc();
 
