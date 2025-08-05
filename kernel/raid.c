@@ -70,10 +70,6 @@ int init_raid0() {
 }
 
 int read_raid0(int blkn, uchar* data) {
-  // cannot read first block
-  if (blkn == 0)
-    return -1;
-
   load_raid_data_cache();
 
   // Check if raid is working
@@ -86,7 +82,7 @@ int read_raid0(int blkn, uchar* data) {
   int diskn = blkn % num_of_disks + 1;
   // calculate block number on the disk
   int blockn = blkn / num_of_disks;
-  if (diskn == 1 && blockn == 0) return -2; // cannot access 0th block on the first disk
+  if (diskn == 1) blockn++;
 
   // block number outside of the range
   if (blockn > NUMBER_OF_BLOCKS - 1)
@@ -99,10 +95,6 @@ int read_raid0(int blkn, uchar* data) {
 }
 
 int write_raid0(int blkn, uchar* data) {
-  // cannot read first block
-  if (blkn == 0)
-    return -1;
-
   load_raid_data_cache();
 
   // Check if raid is working
@@ -203,8 +195,7 @@ int init_raid1() {
 }
 
 int read_raid1(int blkn, uchar* data) {
-  // cannot read from the first block
-  if (blkn == 0) return -1;
+  blkn = blkn + 1;
 
   load_raid_data_cache();
 
@@ -230,8 +221,7 @@ int read_raid1(int blkn, uchar* data) {
 }
 
 int write_raid1(int blkn, uchar* data) {
-  // cannot read from the first block
-  if (blkn == 0) return -1;
+  blkn = blkn + 1;
 
   load_raid_data_cache();
 
@@ -342,7 +332,7 @@ int destroy_raid1() {
 
 int init_raid01() {
   // check for even number of disks, because one disk is reserved by xv6 (need even number of disks without it)
-  if (VIRTIO_RAID_DISK_END % 2 != 0 || VIRTIO_RAID_DISK_END < 2)
+  if (VIRTIO_RAID_DISK_END % 2 != 0 || VIRTIO_RAID_DISK_END < 4)
     return -1;
 
   // initialize metadata
@@ -375,12 +365,10 @@ int read_raid01(int blkn, uchar* data) {
   int logical_disks = VIRTIO_RAID_DISK_END / 2;
   int group_number = blkn % logical_disks;
   int diskn = group_number * 2 + 1;
-  int blockn = blkn / logical_disks;
+  int blockn = blkn / logical_disks + 1;
 
-  // printf("Logical disk: %d\nGroup number: %d\nDisk1: %d\nDisk2: %d\nBlock: %d\n", logical_disks, group_number, diskn, diskn + 1, blockn);
-
-  if (blockn == 0)
-    return -1;
+  // out of bounds
+  if (blockn > NUMBER_OF_BLOCKS - 1) return -1;
 
   uchar read = 0;
 
@@ -409,13 +397,10 @@ int write_raid01(int blkn, uchar* data) {
   int logical_disks = VIRTIO_RAID_DISK_END / 2;
   int group_number = blkn % logical_disks;
   int diskn = group_number * 2 + 1;
-  int blockn = blkn / logical_disks;
+  int blockn = blkn / logical_disks + 1;
 
-  // printf("Logical disk: %d\nGroup number: %d\nDisk1: %d\nDisk2: %d\nBlock: %d\n", logical_disks, group_number, diskn, diskn + 1, blockn);
-
-  // 0th block oon every disk is reserved for raid metadata
-  if (blockn == 0)
-    return -1;
+  // out of bounds
+  if (blockn > NUMBER_OF_BLOCKS - 1) return -1;
 
   uchar write = 0;
 
@@ -575,20 +560,15 @@ int recover_missing_block(int blockn, int disk_to_skip, uchar* data) {
 }
 
 int read_raid4(int blkn, uchar* data) {
-  // cannot read the 0th block (raid data structure)
-  if (blkn == 0)
-    return -1;
-
   load_raid_data_cache();
 
   // calculate disk and block to write data
   int data_disks = VIRTIO_RAID_DISK_END - 1;
   int diskn = blkn % data_disks + 1;
-  int blockn = blkn / data_disks;
+  int blockn = blkn / data_disks + 1;
 
-  // block number outside of the range
-  if (blockn < 1 || blockn > NUMBER_OF_BLOCKS - 1)
-    return -1;
+  // out of bounds
+  if (blockn > NUMBER_OF_BLOCKS - 1) return -1;
 
   // disk with requested block is working
   if (raid_data_cache[diskn - 1].working == 1) {
@@ -610,16 +590,15 @@ int read_raid4(int blkn, uchar* data) {
 }
 
 int write_raid4(int blkn, uchar* data) {
-  // cannot write to the 0th block (raid data structure)
-  if (blkn == 0)
-    return -1;
-
   load_raid_data_cache();
 
   // calculate disk and block to write data
   int data_disks = VIRTIO_RAID_DISK_END - 1;
   int diskn = blkn % data_disks + 1;
-  int blockn = blkn / data_disks;
+  int blockn = blkn / data_disks + 1;
+
+  // out of bounds
+  if (blockn > NUMBER_OF_BLOCKS - 1) return -1;
 
   // disk with the requested block is not working
   if (raid_data_cache[diskn - 1].working == 0)
@@ -778,11 +757,10 @@ int read_raid5(int blkn, uchar* data) {
   int parity_location = stripe % number_of_disks + 1;
   int diskn = blkn % (number_of_disks - 1) + 1;
   diskn = (diskn >= parity_location) ? diskn + 1 : diskn;
-  int blockn = stripe;
+  int blockn = stripe + 1;
 
-  // cannot write in 0th block on any disk
-  if (blockn == 0)
-    return -1;
+  // out of bounds
+  if (blockn > NUMBER_OF_BLOCKS - 1) return -1;
 
   load_raid_data_cache();
 
@@ -808,11 +786,10 @@ int write_raid5(int blkn, uchar* data) {
   int parity_location = stripe % number_of_disks + 1;
   int diskn = blkn % (number_of_disks - 1) + 1;
   diskn = (diskn >= parity_location) ? diskn + 1 : diskn;
-  int blockn = stripe;
+  int blockn = stripe + 1;
 
-  // cannot write in 0th block on any disk
-  if (blockn == 0)
-    return -1;
+  // out of bounds
+  if (blockn > NUMBER_OF_BLOCKS - 1) return -1;
 
   // calculate parity using read-modify-write method
   uchar buffer[BSIZE];

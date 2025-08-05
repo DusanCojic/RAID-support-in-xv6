@@ -22,7 +22,7 @@ main(int argc, char *argv[])
     }
     write_raid(i, blk);
   }
-
+  
   check_data(blocks, blk, block_size);
 
   disk_fail_raid(2);
@@ -47,7 +47,7 @@ void check_data(uint blocks, uchar *blk, uint block_size)
     {
       if ((uchar)(j + i) != blk[j])
       {
-        printf("expected=%d got=%d", j + i, blk[j]);
+        printf("expected=%d got=%d - ", j + i, blk[j]);
         printf("Data in the block %d faulty\n", i);
         break;
       }
