@@ -902,7 +902,7 @@ int destroy_raid5() {
 struct sleeplock raid_lock;
 
 // function to initialize sleeplock
-void init_sleeplock() {
+inline void init_sleeplock() {
   initsleeplock(&raid_lock, "raid_lock");
 }
 
