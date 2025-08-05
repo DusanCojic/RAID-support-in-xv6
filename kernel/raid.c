@@ -651,7 +651,7 @@ int disk_repaired_raid4(int diskn) {
     return -1;
 
   // parity disk is not working
-  if (raid_data_cache[VIRTIO_RAID_DISK_END - 1].working == 0)
+  if (diskn != VIRTIO_RAID_DISK_END && raid_data_cache[VIRTIO_RAID_DISK_END - 1].working == 0)
     return -2;
 
   uchar buffer[BSIZE];
