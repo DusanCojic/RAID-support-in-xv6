@@ -1,4 +1,4 @@
-#include "types.h"
+#include "raid.h"
 #include "param.h"
 #include "memlayout.h"
 #include "riscv.h"
@@ -28,6 +28,7 @@ main()
     iinit();         // inode table
     fileinit();      // file table
     virtio_disk_init(VIRTIO0_ID, "program_disk"); // emulated hard disk 0, with programs
+    init_raidlock(); // initialize sleeplock used in raid functionsss
 
     for (int i = VIRTIO_RAID_DISK_START; i <= VIRTIO_RAID_DISK_END; i++) {
       char name[30] = {0};

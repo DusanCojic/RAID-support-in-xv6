@@ -902,7 +902,7 @@ int destroy_raid5() {
 struct sleeplock raid_lock;
 
 // function to initialize sleeplock
-void init_sleeplock() {
+void init_raidlock() {
   initsleeplock(&raid_lock, "raid_lock");
 }
 
@@ -941,7 +941,6 @@ enum RAID_TYPE check_raid() {
 }
 
 int init_raid(enum RAID_TYPE raid_type) {
-  init_sleeplock();
   lock();
 
   int ret = -1;

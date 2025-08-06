@@ -4,6 +4,8 @@
         "fs.h": "c",
         "user.h": "c",
         "cstdlib": "c",
-        "type_traits": "c"
+        "type_traits": "c",
+        "defs.h": "c",
+        "raid.h": "c"
     }
 }

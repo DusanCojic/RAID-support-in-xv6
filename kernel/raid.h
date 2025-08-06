@@ -8,3 +8,5 @@ int disk_fail_raid(int diskn);
 int disk_repaired_raid(int diskn);
 int info_raid(uint *blkn, uint *blks, uint *diskn);
 int destroy_raid();
+
+void init_raidlock();
