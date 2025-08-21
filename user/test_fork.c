@@ -28,7 +28,7 @@ void child_test(int id, int block, int value, int size) {
 }
 
 int main() {
-    init_raid(RAID0_1);
+    init_raid(RAID5);
 
     uint disk_num, block_num, block_size;
     info_raid(&block_num, &block_size, &disk_num);
@@ -43,6 +43,16 @@ int main() {
     if (fork() == 0)
         child_test(2, 5, 4, block_size);
 
+    // second child process
+    if (fork() == 0)
+        child_test(3, 5, 7, block_size);
+
+    // second child process
+    if (fork() == 0)
+        child_test(4, 5, 10, block_size);
+
+    wait(0);
+    wait(0);
     wait(0);
     wait(0);
 
